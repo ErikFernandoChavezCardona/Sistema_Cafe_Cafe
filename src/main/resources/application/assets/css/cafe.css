@@ -1,0 +1,29 @@
+/* Café_Café · sistema de diseño compartido (todas las pantallas lo usan) */
+/* Fuentes locales (sin internet). Si el archivo no existe, usa la fuente de respaldo. */
+@font-face{font-family:'DM Serif Display';src:url('../fonts/DMSerifDisplay-Regular.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';src:url('../fonts/JetBrainsMono-Regular.woff2') format('woff2')}
+:root{
+  --azul:#4B99C8; --prof:#1B5A85; --tinta:#10222F; --crema:#F7F3EA; --niebla:#DCEBF4;
+  --linea:#E5E7EB; --suave:#5b6f7d;
+  --accion:#F4A63C; /* solo el botón principal (Cobrar). Para todo azul: var(--prof) */
+  --t:'DM Serif Display',Georgia,serif; --m:'JetBrains Mono',Consolas,monospace; --u:'Segoe UI',system-ui,sans-serif;
+  --ease:cubic-bezier(.23,1,.32,1);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:14px/1.4 var(--u);background:var(--crema);color:var(--tinta)}
+button,input{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+.eyebrow{font-family:var(--t);font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--prof)}
+.h{font-family:var(--t);font-weight:400;font-size:30px;letter-spacing:.08em;text-transform:uppercase;color:var(--prof);line-height:1.1}
+.mono{font-family:var(--m);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+/* Botones: píldora con borde; solo la acción principal va rellena */
+.pill{padding:13px 26px;border-radius:999px;border:1.5px solid var(--prof);color:var(--prof);font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;font-size:13px;transition:transform 160ms var(--ease),background-color 150ms ease,opacity 150ms ease}
+.pill:active{transform:scale(.97)}
+.pill.fill{background:var(--accion);border-color:var(--accion);color:var(--tinta)}
+.pill:disabled{opacity:.4;cursor:default;transform:none}
+@media (hover:hover) and (pointer:fine){.pill:not(.fill):not(:disabled):hover{background:var(--niebla)}}
+.in{width:100%;padding:13px 20px;border-radius:999px;border:1px solid var(--linea);background:var(--crema);outline:0;transition:border-color 150ms ease}
+.in:focus{border-color:var(--azul)}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}

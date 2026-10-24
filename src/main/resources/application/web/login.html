@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Entrar</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{background:var(--azul);display:grid;place-items:center;color:var(--tinta)}
+main{width:min(360px,92vw);display:flex;flex-direction:column;align-items:center;gap:12px}
+.mark{font-family:var(--t);letter-spacing:.3em;font-size:15px;text-transform:uppercase}
+.hero{width:340px;height:auto;overflow:visible}
+.hero text{font-family:var(--t);font-size:15px;letter-spacing:.22em;fill:var(--tinta)}
+/* Único momento animado: el dibujo se traza una vez al abrir */
+.l{fill:none;stroke:var(--tinta);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:1;stroke-dashoffset:1;animation:draw 900ms var(--ease) 150ms forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+form{width:100%;display:flex;flex-direction:column;gap:12px}
+.go{background:var(--crema);border-color:var(--crema);color:var(--prof)}
+#err{min-height:20px;text-align:center;font-weight:600}
+.off{font-family:var(--m);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<main>
+  <p class="mark">• Café Café •</p>
+  <svg class="hero" viewBox="0 0 400 270" aria-hidden="true">
+    <path id="arc" d="M50 210A150 150 0 0 1 350 210" fill="none"/>
+    <text><textPath href="#arc" xlink:href="#arc" startOffset="50%" text-anchor="middle">CAFÉ PARA EL PUEBLO QUE LO COSECHA</textPath></text>
+    <g transform="translate(139 120) scale(2)">
+      <path class="l" pathLength="1" d="M12 26h32v14a12 12 0 0 1-12 12h-8A12 12 0 0 1 12 40z"/>
+      <path class="l" pathLength="1" d="M44 30h4a6 6 0 0 1 0 12h-5"/>
+      <path class="l" pathLength="1" d="M22 8c-3 4 3 6 0 10M32 8c-3 4 3 6 0 10"/>
+      <path class="l" pathLength="1" d="M6 57h52"/>
+    </g>
+  </svg>
+  <form id="f">
+    <input class="in" id="u" placeholder="Usuario o correo" autocomplete="username" required>
+    <input class="in" id="p" type="password" placeholder="Contraseña" autocomplete="current-password" required>
+    <button class="pill go" id="b">Entrar</button>
+  </form>
+  <p id="err" role="alert"></p>
+  <p class="off">Sin conexión · datos guardados en este equipo</p>
+</main>
+<script>
+// Java entrega window.javaApp y luego llama a onJavaReady. Sin Java (abierto en el navegador) solo navega, para ver el diseño.
+let primerArranque=false;
+window.loginError=m=>{document.getElementById('err').textContent=m};
+window.onJavaReady=()=>{
+  if(!javaApp.hayUsuarios()){
+    primerArranque=true;
+    document.getElementById('u').placeholder='Crea tu usuario administrador';
+    document.getElementById('p').placeholder='Crea tu contraseña (mínimo 6)';
+    document.getElementById('b').textContent='Crear administrador';
+  }
+};
+document.getElementById('f').addEventListener('submit',e=>{
+  e.preventDefault();
+  const u=document.getElementById('u').value.trim(), p=document.getElementById('p').value;
+  if(window.javaApp){ primerArranque?javaApp.crearAdmin(u,p):javaApp.login(u,p); }
+  else location.href='pos.html';
+});
+</script>
+</body>
+</html>
