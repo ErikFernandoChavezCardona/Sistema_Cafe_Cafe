@@ -1,5 +1,6 @@
 package application;
 
+import application.controller.CajaBridge;
 import application.controller.WebBridge;
 import application.model.connection.DatabaseConnection;
 import javafx.application.Application;
@@ -12,8 +13,9 @@ import netscape.javascript.JSObject;
 
 public class Main extends Application {
 
-    // Referencia fuerte: si se pierde, el recolector de basura rompe el puente con el HTML.
+    // Referencias fuertes: si se pierden, el recolector de basura rompe el puente con el HTML.
     private WebBridge bridge;
+    private CajaBridge cajaBridge;
 
     @Override
     public void start(Stage stage) {
@@ -23,12 +25,14 @@ public class Main extends Application {
         view.setContextMenuEnabled(false);
         WebEngine engine = view.getEngine();
         bridge = new WebBridge(engine);
+        cajaBridge = new CajaBridge(engine);
 
-        // Cada vez que carga una página, se le entrega el puente como window.javaApp
+        // Cada vez que carga una página, se le entregan los puentes: window.javaApp y window.javaCaja
         engine.getLoadWorker().stateProperty().addListener((obs, anterior, estado) -> {
             if (estado == Worker.State.SUCCEEDED) {
                 JSObject window = (JSObject) engine.executeScript("window");
                 window.setMember("javaApp", bridge);
+                window.setMember("javaCaja", cajaBridge);
                 engine.executeScript("window.onJavaReady && window.onJavaReady()");
             }
         });

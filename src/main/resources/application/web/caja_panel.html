@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Caja</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{display:flex;overflow:hidden}
+nav{width:164px;flex:none;background:var(--prof);color:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:2px}
+.wm{font-family:var(--t);font-size:24px;text-transform:lowercase;padding:0 10px 22px}
+nav a{padding:12px 10px;border-radius:12px;color:rgba(255,255,255,.78);text-decoration:none;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;transition:background-color 150ms ease,transform 160ms var(--ease)}
+nav a.on{background:rgba(255,255,255,.16);color:#fff}
+nav a:active{transform:scale(.97)}
+nav a.soon{opacity:.5;pointer-events:none}
+@media (hover:hover) and (pointer:fine){nav a:not(.on):not(.soon):hover{background:rgba(255,255,255,.08)}}
+main{flex:1;display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:16px;overflow-y:auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.acc{display:flex;gap:10px}
+.panel{flex:1;min-height:0;display:flex;gap:22px}
+.card{border:1px solid var(--linea);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:6px}
+#resumen{width:360px;flex:none}
+.fila{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--linea)}
+.fila.sub span:first-child{color:var(--suave)}
+.fila.apart{margin-top:6px;border-bottom:0}
+.esp{display:flex;justify-content:space-between;align-items:baseline;padding-top:14px;margin-top:6px;border-top:2px solid var(--prof)}
+.esp strong{font-size:30px;font-weight:400}
+.nota{color:var(--suave);font-size:12px;margin-top:8px}
+#lista{flex:1;min-width:0;min-height:0}
+#movs{flex:1;overflow-y:auto}
+.mv{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--linea)}
+.mv .hora{color:var(--suave)}
+.mv small{display:block;color:var(--suave)}
+.mv .mono{text-align:right}
+.mv.no .mono{color:var(--suave)}
+.pos{color:#1d7a4d}.neg{color:#b4492f}
+.empty{color:var(--suave);text-align:center;margin-top:40px}
+/* Ventanas emergentes propias: el <dialog> no es confiable en el WebView */
+.fondo{position:fixed;inset:0;background:rgba(16,34,47,.45);display:none;place-items:center;z-index:10}
+.fondo.on{display:grid}
+.modal{width:min(400px,92vw);background:var(--crema);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:12px}
+.modal form{display:flex;flex-direction:column;gap:12px}
+.modal label{font-size:12px;color:var(--suave);margin-bottom:-6px;padding-left:6px}
+.modal .in.m{text-align:center;font-family:var(--m);font-size:20px}
+select.in{appearance:none}
+.dif{text-align:center;font-weight:600;min-height:22px}
+.btns{display:flex;gap:10px;margin-top:6px}.btns .pill{flex:1;padding-left:12px;padding-right:12px}
+.pill.fill.peligro{background:var(--prof);border-color:var(--prof);color:#fff}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#b4492f;color:#fff;padding:12px 22px;border-radius:999px;
+  font-weight:600;z-index:20;display:none}
+/* Reporte de cierre */
+#reporte{display:none;max-width:520px;width:100%;margin:0 auto;flex-direction:column;gap:6px}
+#reporte .esp strong{font-size:26px}
+.dif-r{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;font-weight:600}
+.dif-r strong{font-size:26px;font-weight:400}
+@media print{
+  nav,.acc,.btns,#toast,.fondo{display:none!important}
+  body{display:block;overflow:visible;height:auto;background:#fff}
+  main{overflow:visible;padding:0}
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a class="on" href="caja_panel.html">Caja</a>
+  <a class="soon" href="#">Productos</a>
+  <a class="soon" href="#">Insumos</a>
+  <a class="soon" href="#">Egresos</a>
+  <a class="soon" href="#">Facturas</a>
+  <a class="soon" href="#">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div><p class="eyebrow" id="sub">Turno abierto</p><h1 class="h" id="tit">Caja</h1></div>
+    <div class="acc" id="acc">
+      <button class="pill" data-abrir="m-egreso">Registrar egreso</button>
+      <button class="pill" data-abrir="m-ingreso">Registrar ingreso</button>
+      <button class="pill fill" data-abrir="m-cierre">Cerrar caja</button>
+    </div>
+  </header>
+
+  <div class="panel" id="panel">
+    <section class="card" id="resumen">
+      <p class="eyebrow">Resumen del turno</p>
+      <div class="fila"><span>Monto inicial</span><span class="mono" id="r-ini"></span></div>
+      <div class="fila"><span>Ventas en efectivo</span><span class="mono" id="r-efe"></span></div>
+      <div class="fila"><span>Ingresos a caja</span><span class="mono" id="r-ing"></span></div>
+      <div class="fila"><span>Egresos</span><span class="mono" id="r-egr"></span></div>
+      <div class="esp"><span class="eyebrow">Efectivo esperado</span><strong class="mono" id="r-esp"></strong></div>
+      <div class="fila sub apart"><span>Ventas con tarjeta</span><span class="mono" id="r-tar"></span></div>
+      <div class="fila sub"><span>Ventas por transferencia</span><span class="mono" id="r-tra"></span></div>
+      <p class="nota">Tarjeta y transferencia no suman al efectivo de la caja.</p>
+    </section>
+    <section class="card" id="lista">
+      <p class="eyebrow">Movimientos</p>
+      <div id="movs"></div>
+    </section>
+  </div>
+
+  <section class="card" id="reporte"></section>
+</main>
+
+<div class="fondo" id="m-egreso"><div class="modal">
+  <h2 class="h" style="font-size:22px">Registrar egreso</h2>
+  <form data-f="egreso">
+    <label for="eg-d">Descripción</label>
+    <input class="in" id="eg-d" placeholder="Ej: Hielo, gas, taxi…" autocomplete="off" required>
+    <label for="eg-c">Categoría</label>
+    <select class="in" id="eg-c">
+      <option>General</option><option>Insumos</option><option>Servicios</option><option>Transporte</option><option>Limpieza</option><option>Otros</option>
+    </select>
+    <label for="eg-m">Monto</label>
+    <input class="in m" id="eg-m" inputmode="decimal" placeholder="L 0.00" autocomplete="off" required>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar egreso</button></div>
+  </form>
+</div></div>
+
+<div class="fondo" id="m-ingreso"><div class="modal">
+  <h2 class="h" style="font-size:22px">Registrar ingreso</h2>
+  <form data-f="ingreso">
+    <label for="in-d">Concepto</label>
+    <input class="in" id="in-d" placeholder="Ej: Reposición de cambio" autocomplete="off" required>
+    <label for="in-m">Monto</label>
+    <input class="in m" id="in-m" inputmode="decimal" placeholder="L 0.00" autocomplete="off" required>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar ingreso</button></div>
+  </form>
+</div></div>
+
+<div class="fondo" id="m-cierre"><div class="modal">
+  <h2 class="h" style="font-size:22px">Cerrar caja</h2>
+  <p class="nota" style="margin:0">Cuenta el efectivo que hay en la caja y escríbelo aquí.</p>
+  <form data-f="cierre">
+    <div class="fila" style="border:0;padding:0"><span>Efectivo esperado</span><b class="mono" id="c-esp"></b></div>
+    <input class="in m" id="c-m" inputmode="decimal" placeholder="Efectivo contado L 0.00" autocomplete="off" required>
+    <p class="dif" id="c-dif"></p>
+    <p class="nota" style="margin:0">Al cerrar, no se podrá vender hasta abrir una caja nueva.</p>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill peligro">Cerrar caja</button></div>
+  </form>
+</div></div>
+
+<div id="toast" role="alert"></div>
+
+<script>
+// Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java), para poder diseñar.
+let R={id:1,apertura:'2026-10-24 07:30:00',inicial:50000,efectivo:182000,tarjeta:65000,transferencia:24000,ingresos:10000,egresos:15000,esperado:227000};
+let M=[
+ {tipo:'Venta',d:'Mesa 5',x:'Efectivo',m:22000,h:'2026-10-24 10:42:00',e:true},
+ {tipo:'Egreso',d:'Hielo',x:'Insumos',m:15000,h:'2026-10-24 09:15:00',e:true},
+ {tipo:'Venta',d:'Para llevar',x:'Tarjeta',m:11000,h:'2026-10-24 08:50:00',e:false},
+ {tipo:'Ingreso',d:'Reposición de cambio',x:null,m:10000,h:'2026-10-24 07:45:00',e:true}];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const money=c=>'L '+(c/100).toLocaleString('en-US',{minimumFractionDigits:2});   // el dinero viaja en centavos
+const hora=t=>t?t.substring(11,16):'';
+// Convierte lo que escribe el cajero ("55", "55,50") a centavos enteros; null si no es válido
+function aCentavos(txt){const v=parseFloat(String(txt).replace(',','.'));return isNaN(v)||v<0?null:Math.round(v*100)}
+const enJava=()=>!!window.javaCaja;
+
+function cargar(){
+  if(enJava()){R=JSON.parse(javaCaja.resumenTurno());M=JSON.parse(javaCaja.movimientosTurno())}
+  pintar();
+}
+function pintar(){
+  $('#sub').textContent='Turno abierto desde '+hora(R.apertura);
+  $('#r-ini').textContent=money(R.inicial);
+  $('#r-efe').textContent=money(R.efectivo);
+  $('#r-ing').textContent=money(R.ingresos);
+  $('#r-egr').textContent='− '+money(R.egresos);
+  $('#r-esp').textContent=money(R.esperado);
+  $('#r-tar').textContent=money(R.tarjeta);
+  $('#r-tra').textContent=money(R.transferencia);
+  $('#movs').innerHTML=M.length?M.map(m=>{
+    const signo=m.tipo==='Egreso'?'−':'+';
+    const nota=m.tipo==='Venta'?m.x+(m.e?'':' · no suma al efectivo'):(m.tipo==='Egreso'?m.x:m.tipo);
+    return `<div class="mv${m.e?'':' no'}"><span class="mono hora">${hora(m.h)}</span>
+      <div><b>${esc(m.d)}</b><small>${esc(nota)}</small></div>
+      <span class="mono ${m.e?(m.tipo==='Egreso'?'neg':'pos'):''}">${signo} ${money(m.m)}</span></div>`}).join('')
+    :'<p class="empty">Todavía no hay movimientos en este turno</p>';
+}
+
+window.onJavaReady=()=>{
+  // Sin caja abierta no hay panel: se va a abrir caja
+  if(!javaApp.hayTurnoAbierto()){javaApp.irA('caja.html');return}
+  cargar();
+};
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar()},400));
+
+let huboError=false,tt;
+window.mostrarError=m=>{huboError=true;const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4000)};
+
+// ---- Ventanas emergentes ----
+function abrir(id){
+  const f=$('#'+id);f.classList.add('on');
+  if(id==='m-cierre'){$('#c-esp').textContent=money(R.esperado);$('#c-dif').textContent='';}
+  const i=f.querySelector('input');if(i)setTimeout(()=>i.focus(),30);
+}
+function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>{f.classList.remove('on');f.querySelectorAll('form').forEach(x=>x.reset())})}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(b&&b.dataset.abrir)abrir(b.dataset.abrir);
+  else if(b&&b.dataset.cerrar!==undefined)cerrar();
+  else if(e.target.classList.contains('fondo'))cerrar();
+});
+
+// Diferencia en vivo mientras el cajero escribe lo contado
+$('#c-m').addEventListener('input',e=>{
+  const c=aCentavos(e.target.value),d=$('#c-dif');
+  if(c===null){d.textContent='';d.className='dif';return}
+  const dif=c-R.esperado;
+  d.textContent=dif===0?'La caja cuadra':(dif>0?'Sobrante ':'Faltante ')+money(Math.abs(dif));
+  d.className='dif '+(dif>0?'pos':dif<0?'neg':'');
+});
+
+// ---- Guardar ----
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  const tipo=e.target.dataset.f;
+  if(tipo==='egreso')guardarEgreso();
+  else if(tipo==='ingreso')guardarIngreso();
+  else if(tipo==='cierre')cerrarCaja();
+});
+function guardarEgreso(){
+  const d=$('#eg-d').value.trim(),c=$('#eg-c').value,m=aCentavos($('#eg-m').value);
+  if(!d||!m){mostrarError('Escribe la descripción y un monto mayor que cero');return}
+  huboError=false;
+  if(enJava())javaCaja.registrarEgreso(d,c,String(m));
+  else{R.egresos+=m;R.esperado-=m;M.unshift({tipo:'Egreso',d:d,x:c,m:m,h:ahora(),e:true})}   // demo
+  if(!huboError){cerrar();cargar()}
+}
+function guardarIngreso(){
+  const d=$('#in-d').value.trim(),m=aCentavos($('#in-m').value);
+  if(!d||!m){mostrarError('Escribe el concepto y un monto mayor que cero');return}
+  huboError=false;
+  if(enJava())javaCaja.registrarIngreso(d,String(m));
+  else{R.ingresos+=m;R.esperado+=m;M.unshift({tipo:'Ingreso',d:d,x:null,m:m,h:ahora(),e:true})}   // demo
+  if(!huboError){cerrar();cargar()}
+}
+function ahora(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':00'}
+
+function cerrarCaja(){
+  const c=aCentavos($('#c-m').value);
+  if(c===null){mostrarError('Escribe el efectivo contado');return}
+  let r;
+  if(enJava())r=JSON.parse(javaCaja.cerrarCaja(String(c)));
+  else r=Object.assign({ok:true,cierre:ahora(),contado:c,diferencia:c-R.esperado},R);   // demo
+  if(!r.ok)return;                       // Java ya mostró el error
+  cerrar();reporte(r);
+}
+
+// ---- Reporte de cierre (imprimible) ----
+function reporte(r){
+  $('#panel').style.display='none';$('#acc').style.display='none';
+  $('#sub').textContent='Turno cerrado';$('#tit').textContent='Reporte de cierre';
+  const f=(a,b,cls)=>`<div class="fila"><span>${a}</span><span class="mono ${cls||''}">${b}</span></div>`;
+  const dif=r.diferencia,txt=dif===0?'La caja cuadra':(dif>0?'Sobrante':'Faltante');
+  $('#reporte').style.display='flex';
+  $('#reporte').innerHTML=
+    `<p class="eyebrow">Café Café</p>`+
+    f('Apertura',esc(r.apertura))+f('Cierre',esc(r.cierre))+
+    f('Monto inicial',money(r.inicial))+f('Ventas en efectivo',money(r.efectivo))+
+    f('Ingresos a caja',money(r.ingresos))+f('Egresos','− '+money(r.egresos))+
+    `<div class="esp"><span class="eyebrow">Efectivo esperado</span><strong class="mono">${money(r.esperado)}</strong></div>`+
+    f('Efectivo contado',money(r.contado))+
+    `<div class="dif-r"><span>${txt}</span><strong class="mono ${dif>0?'pos':dif<0?'neg':''}">${dif===0?money(0):money(Math.abs(dif))}</strong></div>`+
+    f('Ventas con tarjeta (no suman al efectivo)',money(r.tarjeta))+
+    f('Ventas por transferencia (no suman al efectivo)',money(r.transferencia))+
+    `<div class="btns"><button class="pill" id="imp">Imprimir reporte</button><button class="pill fill" id="nueva">Abrir caja nueva</button></div>`;
+  $('#imp').onclick=()=>{if(enJava()&&javaCaja.imprimirReporte)javaCaja.imprimirReporte();else window.print()};
+  $('#nueva').onclick=()=>{if(window.javaApp)javaApp.irA('caja.html');else location.href='caja.html'};
+}
+</script>
+</body>
+</html>
