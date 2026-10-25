@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Abrir caja</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{display:grid;place-items:center}
+main{width:min(380px,92vw);display:flex;flex-direction:column;gap:14px;text-align:center}
+.sub{color:var(--suave)}
+.in.m{text-align:center;font-family:var(--m);font-size:22px}
+.pill.fill{width:100%;margin-top:12px}
+#err{min-height:20px;color:#b4492f;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Nuevo turno</p>
+  <h1 class="h">Abrir caja</h1>
+  <p class="sub">Escribe el efectivo con el que empieza la caja chica.</p>
+  <form id="f">
+    <input class="in m" id="m" inputmode="decimal" placeholder="L 0.00" autofocus required>
+    <button class="pill fill">Abrir caja</button>
+  </form>
+  <p id="err" role="alert"></p>
+</main>
+<script>
+window.mostrarError=m=>{document.getElementById('err').textContent=m};
+window.onJavaReady=()=>{ if(javaApp.hayTurnoAbierto()) javaApp.irA('pos.html'); };
+document.getElementById('f').addEventListener('submit',e=>{
+  e.preventDefault();
+  const v=parseFloat(document.getElementById('m').value.replace(',','.'));
+  if(isNaN(v)||v<0){ mostrarError('Escribe un monto válido'); return; }
+  const centavos=Math.round(v*100);                 // el dinero viaja en centavos enteros
+  if(window.javaApp) javaApp.abrirTurno(String(centavos)); else location.href='pos.html';
+});
+</script>
+</body>
+</html>

@@ -13,14 +13,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Conexión a SQLite. La base es un archivo (cafecafe.db) en la carpeta de datos del usuario.
+ * Conexión a SQLite. La base es un archivo (cafecafe.db) en la carpeta de datos
+ * del usuario.
  * El esquema se crea y se actualiza solo con migraciones numeradas (V1, V2...).
  */
 public final class DatabaseConnection {
 
-    /** Para cambiar la base en el futuro: agrega un archivo V2__... aquí. NUNCA edites uno ya entregado. */
+    /**
+     * Para cambiar la base en el futuro: agrega un archivo V2__... aquí. NUNCA
+     * edites uno ya entregado.
+     */
     private static final String[] MIGRACIONES = {
-            "/application/db/V1__esquema_inicial.sql"
+            "/application/db/V1__esquema_inicial.sql",
+            "/application/db/V2__menu_inicial.sql"
     };
 
     private DatabaseConnection() {
@@ -28,9 +33,9 @@ public final class DatabaseConnection {
 
     private static SQLiteConfig config() {
         SQLiteConfig c = new SQLiteConfig();
-        c.enforceForeignKeys(true);                                // sin esto SQLite ignora las llaves foráneas
-        c.setJournalMode(SQLiteConfig.JournalMode.WAL);            // resiste mejor los cortes de luz
-        c.setSynchronous(SQLiteConfig.SynchronousMode.FULL);       // cada venta se escribe de verdad en disco
+        c.enforceForeignKeys(true); // sin esto SQLite ignora las llaves foráneas
+        c.setJournalMode(SQLiteConfig.JournalMode.WAL); // resiste mejor los cortes de luz
+        c.setSynchronous(SQLiteConfig.SynchronousMode.FULL); // cada venta se escribe de verdad en disco
         c.setBusyTimeout(5000);
         return c;
     }
@@ -66,7 +71,7 @@ public final class DatabaseConnection {
                 s.execute(sql);
             }
             s.execute("PRAGMA user_version = " + version);
-            c.commit();                       // o se aplica toda la migración o nada
+            c.commit(); // o se aplica toda la migración o nada
         } catch (Exception e) {
             c.rollback();
             throw e;
@@ -77,12 +82,16 @@ public final class DatabaseConnection {
 
     private static String leer(String recurso) throws Exception {
         try (InputStream in = DatabaseConnection.class.getResourceAsStream(recurso)) {
-            if (in == null) throw new IllegalStateException("Falta la migración: " + recurso);
+            if (in == null)
+                throw new IllegalStateException("Falta la migración: " + recurso);
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 
-    /** Separa por ';' ignorando comentarios (--). Por eso las migraciones no deben usar triggers. */
+    /**
+     * Separa por ';' ignorando comentarios (--). Por eso las migraciones no deben
+     * usar triggers.
+     */
     private static List<String> dividir(String script) {
         StringBuilder limpio = new StringBuilder();
         for (String linea : script.split("\\R")) {
@@ -90,7 +99,8 @@ public final class DatabaseConnection {
         }
         List<String> out = new ArrayList<>();
         for (String parte : limpio.toString().split(";")) {
-            if (!parte.isBlank()) out.add(parte.trim());
+            if (!parte.isBlank())
+                out.add(parte.trim());
         }
         return out;
     }
