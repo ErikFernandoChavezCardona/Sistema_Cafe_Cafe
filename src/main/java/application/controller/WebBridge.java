@@ -142,6 +142,11 @@ public class WebBridge {
         }
     }
 
+    /** Para CajaBridge (mismo paquete): quién inició sesión. Sin "public" para que el HTML no pueda llamarlo. */
+    Usuario usuarioActual() {
+        return usuarioActual;
+    }
+
     // ---------- Navegación y errores ----------
 
     public void irA(String pagina) {

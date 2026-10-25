@@ -25,7 +25,7 @@ public class Main extends Application {
         view.setContextMenuEnabled(false);
         WebEngine engine = view.getEngine();
         bridge = new WebBridge(engine);
-        cajaBridge = new CajaBridge(engine);
+        cajaBridge = new CajaBridge(engine, bridge);
 
         // Cada vez que carga una página, se le entregan los puentes: window.javaApp y window.javaCaja
         engine.getLoadWorker().stateProperty().addListener((obs, anterior, estado) -> {

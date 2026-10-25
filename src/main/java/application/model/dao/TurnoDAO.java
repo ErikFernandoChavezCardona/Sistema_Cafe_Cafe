@@ -86,15 +86,16 @@ public class TurnoDAO {
      * La escritura va primero a propósito: toma el candado de la base antes de calcular, así nadie
      * puede registrar un egreso a mitad del cierre, y el "AND estado = 'Abierta'" impide cerrar dos veces.
      */
-    public ResultadoCierre cerrar(int idTurno, int contadoCent) {
+    public ResultadoCierre cerrar(int idTurno, int contadoCent, int idUsuarioCierre) {
         try (Connection c = DatabaseConnection.getConnection()) {
             c.setAutoCommit(false);
             try {
                 String cerrar = "UPDATE turnos_caja SET estado = 'Cerrada', cierre_en = datetime('now','localtime'), "
-                        + "monto_contado_cent = ? WHERE id_turno = ? AND estado = 'Abierta'";
+                        + "monto_contado_cent = ?, id_usuario_cierre = ? WHERE id_turno = ? AND estado = 'Abierta'";
                 try (PreparedStatement ps = c.prepareStatement(cerrar)) {
                     ps.setInt(1, contadoCent);
-                    ps.setInt(2, idTurno);
+                    ps.setInt(2, idUsuarioCierre);
+                    ps.setInt(3, idTurno);
                     if (ps.executeUpdate() != 1) throw new IllegalStateException("El turno ya estaba cerrado");
                 }
 
@@ -109,15 +110,21 @@ public class TurnoDAO {
                     ps.executeUpdate();
                 }
 
-                String cierreEn;
-                try (PreparedStatement ps = c.prepareStatement("SELECT cierre_en FROM turnos_caja WHERE id_turno = ?")) {
+                String cierreEn = null;
+                String usuarioCerro = null;
+                String leer = "SELECT t.cierre_en, u.nombre || ' (' || u.usuario || ')' FROM turnos_caja t "
+                        + "JOIN usuarios u ON u.id_usuario = t.id_usuario_cierre WHERE t.id_turno = ?";
+                try (PreparedStatement ps = c.prepareStatement(leer)) {
                     ps.setInt(1, idTurno);
                     try (ResultSet rs = ps.executeQuery()) {
-                        cierreEn = rs.next() ? rs.getString(1) : null;
+                        if (rs.next()) {
+                            cierreEn = rs.getString(1);
+                            usuarioCerro = rs.getString(2);
+                        }
                     }
                 }
                 c.commit();
-                return new ResultadoCierre(r, contadoCent, diferencia, cierreEn);
+                return new ResultadoCierre(r, contadoCent, diferencia, cierreEn, usuarioCerro);
             } catch (SQLException | RuntimeException e) {
                 c.rollback();
                 throw e;
@@ -129,19 +136,20 @@ public class TurnoDAO {
 
     /** Un solo SELECT con subconsultas; recibe la conexión para poder usarse dentro del cierre. */
     private ResumenTurno resumen(Connection c, int idTurno) throws SQLException {
-        String sql = "SELECT t.apertura_en, t.monto_inicial_cent, "
+        String sql = "SELECT t.apertura_en, u.nombre || ' (' || u.usuario || ')', t.monto_inicial_cent, "
                 + "(SELECT COALESCE(SUM(total_cent), 0) FROM ventas WHERE id_turno = t.id_turno AND estado = 'Completada' AND metodo_pago = 'Efectivo'), "
                 + "(SELECT COALESCE(SUM(total_cent), 0) FROM ventas WHERE id_turno = t.id_turno AND estado = 'Completada' AND metodo_pago = 'Tarjeta'), "
                 + "(SELECT COALESCE(SUM(total_cent), 0) FROM ventas WHERE id_turno = t.id_turno AND estado = 'Completada' AND metodo_pago = 'Transferencia'), "
+                + "(SELECT COUNT(*) FROM ventas WHERE id_turno = t.id_turno AND estado = 'Completada'), "
                 + "(SELECT COALESCE(SUM(monto_cent), 0) FROM ingresos_caja WHERE id_turno = t.id_turno), "
                 + "(SELECT COALESCE(SUM(monto_cent), 0) FROM egresos WHERE id_turno = t.id_turno AND pagado_desde_caja = 1) "
-                + "FROM turnos_caja t WHERE t.id_turno = ?";
+                + "FROM turnos_caja t JOIN usuarios u ON u.id_usuario = t.id_usuario WHERE t.id_turno = ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, idTurno);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return null;
-                return new ResumenTurno(idTurno, rs.getString(1), rs.getInt(2),
-                        rs.getInt(3), rs.getInt(4), rs.getInt(5), rs.getInt(6), rs.getInt(7));
+                return new ResumenTurno(idTurno, rs.getString(1), rs.getString(2), rs.getInt(3),
+                        rs.getInt(4), rs.getInt(5), rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getInt(9));
             }
         }
     }
