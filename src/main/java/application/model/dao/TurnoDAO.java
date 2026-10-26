@@ -55,13 +55,15 @@ public class TurnoDAO {
     /** Ventas completadas, ingresos y egresos del turno, lo más reciente primero. */
     public List<Movimiento> movimientos(int idTurno) {
         // Las ventas Pendientes o Canceladas no son dinero real: solo cuentan las Completadas
-        String sql = "SELECT 'Venta', nombre_comanda, metodo_pago, total_cent, COALESCE(cobrada_en, creada_en) AS h, "
-                + "CASE WHEN metodo_pago = 'Efectivo' THEN 1 ELSE 0 END "
+        String sql = "SELECT 'Venta', id_venta, nombre_comanda, metodo_pago, total_cent, COALESCE(cobrada_en, creada_en) AS h, "
+                + "CASE WHEN metodo_pago = 'Efectivo' THEN 1 ELSE 0 END, 0, NULL, NULL "
                 + "FROM ventas WHERE id_turno = ? AND estado = 'Completada' "
-                + "UNION ALL SELECT 'Ingreso', concepto, NULL, monto_cent, creado_en, 1 "
-                + "FROM ingresos_caja WHERE id_turno = ? "
-                + "UNION ALL SELECT 'Egreso', descripcion, categoria, monto_cent, creado_en, pagado_desde_caja "
-                + "FROM egresos WHERE id_turno = ? "
+                + "UNION ALL SELECT 'Ingreso', i.id_ingreso, i.concepto, NULL, i.monto_cent, i.creado_en, "
+                + "CASE WHEN i.anulado = 1 THEN 0 ELSE 1 END, i.anulado, i.motivo_anulacion, u.nombre || ' (' || u.usuario || ')' "
+                + "FROM ingresos_caja i LEFT JOIN usuarios u ON u.id_usuario = i.id_usuario_anulo WHERE i.id_turno = ? "
+                + "UNION ALL SELECT 'Egreso', e.id_egreso, e.descripcion, e.categoria, e.monto_cent, e.creado_en, "
+                + "CASE WHEN e.anulado = 1 THEN 0 ELSE e.pagado_desde_caja END, e.anulado, e.motivo_anulacion, u.nombre || ' (' || u.usuario || ')' "
+                + "FROM egresos e LEFT JOIN usuarios u ON u.id_usuario = e.id_usuario_anulo WHERE e.id_turno = ? "
                 + "ORDER BY h DESC";
         List<Movimiento> lista = new ArrayList<>();
         try (Connection c = DatabaseConnection.getConnection();
@@ -71,8 +73,9 @@ public class TurnoDAO {
             ps.setInt(3, idTurno);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    lista.add(new Movimiento(rs.getString(1), rs.getString(2), rs.getString(3),
-                            rs.getInt(4), rs.getString(5), rs.getInt(6) == 1));
+                    lista.add(new Movimiento(rs.getString(1), rs.getInt(2), rs.getString(3), rs.getString(4),
+                            rs.getInt(5), rs.getString(6), rs.getInt(7) == 1, rs.getInt(8) == 1,
+                            rs.getString(9), rs.getString(10)));
                 }
             }
         } catch (SQLException e) {
@@ -141,8 +144,8 @@ public class TurnoDAO {
                 + "(SELECT COALESCE(SUM(total_cent), 0) FROM ventas WHERE id_turno = t.id_turno AND estado = 'Completada' AND metodo_pago = 'Tarjeta'), "
                 + "(SELECT COALESCE(SUM(total_cent), 0) FROM ventas WHERE id_turno = t.id_turno AND estado = 'Completada' AND metodo_pago = 'Transferencia'), "
                 + "(SELECT COUNT(*) FROM ventas WHERE id_turno = t.id_turno AND estado = 'Completada'), "
-                + "(SELECT COALESCE(SUM(monto_cent), 0) FROM ingresos_caja WHERE id_turno = t.id_turno), "
-                + "(SELECT COALESCE(SUM(monto_cent), 0) FROM egresos WHERE id_turno = t.id_turno AND pagado_desde_caja = 1) "
+                + "(SELECT COALESCE(SUM(monto_cent), 0) FROM ingresos_caja WHERE id_turno = t.id_turno AND anulado = 0), "
+                + "(SELECT COALESCE(SUM(monto_cent), 0) FROM egresos WHERE id_turno = t.id_turno AND pagado_desde_caja = 1 AND anulado = 0) "
                 + "FROM turnos_caja t JOIN usuarios u ON u.id_usuario = t.id_usuario WHERE t.id_turno = ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, idTurno);

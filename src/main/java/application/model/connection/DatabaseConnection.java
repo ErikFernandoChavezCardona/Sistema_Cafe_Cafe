@@ -26,7 +26,8 @@ public final class DatabaseConnection {
     private static final String[] MIGRACIONES = {
             "/application/db/V1__esquema_inicial.sql",
             "/application/db/V2__menu_inicial.sql",
-            "/application/db/V3__usuario_cierre_turno.sql"
+            "/application/db/V3__usuario_cierre_turno.sql",
+            "/application/db/V4__anular_movimientos_caja.sql"
     };
 
     private DatabaseConnection() {

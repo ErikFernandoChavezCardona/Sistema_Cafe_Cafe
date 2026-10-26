@@ -29,11 +29,17 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
 .nota{color:var(--suave);font-size:12px;margin-top:8px}
 #lista{flex:1;min-width:0;min-height:0}
 #movs{flex:1;overflow-y:auto}
-.mv{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--linea)}
+.mv{display:grid;grid-template-columns:54px 1fr auto 78px;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--linea)}
 .mv .hora{color:var(--suave)}
 .mv small{display:block;color:var(--suave)}
 .mv .mono{text-align:right}
 .mv.no .mono{color:var(--suave)}
+.mv.anul{opacity:.6}
+.mv.anul b,.mv.anul .mono{text-decoration:line-through}
+.anu{padding:6px 10px;border-radius:999px;border:1px solid var(--linea);background:transparent;color:var(--suave);font:inherit;font-size:12px;
+  cursor:pointer;transition:transform 160ms var(--ease),color 150ms ease}
+.anu:active{transform:scale(.95)}
+@media (hover:hover) and (pointer:fine){.anu:hover{color:#b4492f}}
 .pos{color:#1d7a4d}.neg{color:#b4492f}
 .empty{color:var(--suave);text-align:center;margin-top:40px}
 /* Ventanas emergentes propias: el <dialog> no es confiable en el WebView */
@@ -56,8 +62,19 @@ select.in{appearance:none}
 .dif-r strong{font-size:26px;font-weight:400}
 @media print{
   nav,.acc,.btns,#toast,.fondo{display:none!important}
-  body{display:block;overflow:visible;height:auto;background:#fff}
-  main{overflow:visible;padding:0}
+  body{display:block;overflow:visible;height:auto;background:#fff;font-size:12px}
+  main{overflow:visible;padding:0;gap:6px}
+  .h{font-size:22px;margin:0}
+  /* Versión compacta para que el reporte quepa en una sola hoja */
+  #reporte{max-width:none;margin:0;gap:0;border:0;padding:0}
+  #reporte .fila{padding:3px 0}
+  #reporte .eyebrow{margin-top:8px!important}
+  #reporte .esp{padding-top:6px;margin-top:4px}
+  #reporte .esp strong{font-size:18px}
+  .dif-r{padding:4px 0}
+  .dif-r strong{font-size:18px}
+  .nota{margin-top:4px}
+  .fila,.esp,.dif-r{break-inside:avoid}
 }
 </style>
 </head>
@@ -142,16 +159,27 @@ select.in{appearance:none}
   </form>
 </div></div>
 
+<div class="fondo" id="m-anular"><div class="modal">
+  <h2 class="h" style="font-size:22px">Anular movimiento</h2>
+  <p class="nota" id="an-res" style="margin:0"></p>
+  <form data-f="anular">
+    <label for="an-mo">Motivo</label>
+    <input class="in" id="an-mo" placeholder="Ej: Me equivoqué en el monto" autocomplete="off" required>
+    <p class="nota" style="margin:0">Queda en el historial como anulado y ya no suma ni resta al efectivo.</p>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill peligro">Anular</button></div>
+  </form>
+</div></div>
+
 <div id="toast" role="alert"></div>
 
 <script>
 // Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java), para poder diseñar.
-let R={id:1,apertura:'2026-10-24 07:30:00',inicial:50000,efectivo:182000,tarjeta:65000,transferencia:24000,ingresos:10000,egresos:15000,esperado:227000};
+let R={id:1,apertura:'2026-10-24 07:30:00',abrio:'Administrador (axel)',nventas:12,ventas:271000,inicial:50000,efectivo:182000,tarjeta:65000,transferencia:24000,ingresos:10000,egresos:15000,esperado:227000};
 let M=[
- {tipo:'Venta',d:'Mesa 5',x:'Efectivo',m:22000,h:'2026-10-24 10:42:00',e:true},
- {tipo:'Egreso',d:'Hielo',x:'Insumos',m:15000,h:'2026-10-24 09:15:00',e:true},
- {tipo:'Venta',d:'Para llevar',x:'Tarjeta',m:11000,h:'2026-10-24 08:50:00',e:false},
- {tipo:'Ingreso',d:'Reposición de cambio',x:null,m:10000,h:'2026-10-24 07:45:00',e:true}];
+ {tipo:'Venta',id:1,an:false,d:'Mesa 5',x:'Efectivo',m:22000,h:'2026-10-24 10:42:00',e:true},
+ {tipo:'Egreso',id:1,an:false,d:'Hielo',x:'Insumos',m:15000,h:'2026-10-24 09:15:00',e:true},
+ {tipo:'Venta',id:2,an:false,d:'Para llevar',x:'Tarjeta',m:11000,h:'2026-10-24 08:50:00',e:false},
+ {tipo:'Ingreso',id:1,an:false,d:'Reposición de cambio',x:null,m:10000,h:'2026-10-24 07:45:00',e:true}];
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
@@ -166,7 +194,7 @@ function cargar(){
   pintar();
 }
 function pintar(){
-  $('#sub').textContent='Turno abierto desde '+hora(R.apertura);
+  $('#sub').textContent='Turno abierto desde '+hora(R.apertura)+' por '+R.abrio;
   $('#r-ini').textContent=money(R.inicial);
   $('#r-efe').textContent=money(R.efectivo);
   $('#r-ing').textContent=money(R.ingresos);
@@ -174,12 +202,13 @@ function pintar(){
   $('#r-esp').textContent=money(R.esperado);
   $('#r-tar').textContent=money(R.tarjeta);
   $('#r-tra').textContent=money(R.transferencia);
-  $('#movs').innerHTML=M.length?M.map(m=>{
+  $('#movs').innerHTML=M.length?M.map((m,i)=>{
     const signo=m.tipo==='Egreso'?'−':'+';
-    const nota=m.tipo==='Venta'?m.x+(m.e?'':' · no suma al efectivo'):(m.tipo==='Egreso'?m.x:m.tipo);
-    return `<div class="mv${m.e?'':' no'}"><span class="mono hora">${hora(m.h)}</span>
+    const nota=m.an?'Anulado: '+m.mo:(m.tipo==='Venta'?m.x+(m.e?'':' · no suma al efectivo'):(m.tipo==='Egreso'?m.x:m.tipo));
+    const boton=(m.tipo!=='Venta'&&!m.an)?`<button class="anu" data-an="${i}">Anular</button>`:'<span></span>';
+    return `<div class="mv${m.e?'':' no'}${m.an?' anul':''}"><span class="mono hora">${hora(m.h)}</span>
       <div><b>${esc(m.d)}</b><small>${esc(nota)}</small></div>
-      <span class="mono ${m.e?(m.tipo==='Egreso'?'neg':'pos'):''}">${signo} ${money(m.m)}</span></div>`}).join('')
+      <span class="mono ${m.e?(m.tipo==='Egreso'?'neg':'pos'):''}">${signo} ${money(m.m)}</span>${boton}</div>`}).join('')
     :'<p class="empty">Todavía no hay movimientos en este turno</p>';
 }
 
@@ -203,6 +232,7 @@ function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>{f.classList
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');
   if(b&&b.dataset.abrir)abrir(b.dataset.abrir);
+  else if(b&&b.dataset.an!==undefined)pedirAnular(+b.dataset.an);
   else if(b&&b.dataset.cerrar!==undefined)cerrar();
   else if(e.target.classList.contains('fondo'))cerrar();
 });
@@ -223,13 +253,14 @@ document.addEventListener('submit',e=>{
   if(tipo==='egreso')guardarEgreso();
   else if(tipo==='ingreso')guardarIngreso();
   else if(tipo==='cierre')cerrarCaja();
+  else if(tipo==='anular')anularMov();
 });
 function guardarEgreso(){
   const d=$('#eg-d').value.trim(),c=$('#eg-c').value,m=aCentavos($('#eg-m').value);
   if(!d||!m){mostrarError('Escribe la descripción y un monto mayor que cero');return}
   huboError=false;
   if(enJava())javaCaja.registrarEgreso(d,c,String(m));
-  else{R.egresos+=m;R.esperado-=m;M.unshift({tipo:'Egreso',d:d,x:c,m:m,h:ahora(),e:true})}   // demo
+  else{R.egresos+=m;R.esperado-=m;M.unshift({tipo:'Egreso',id:Date.now(),an:false,d:d,x:c,m:m,h:ahora(),e:true})}   // demo
   if(!huboError){cerrar();cargar()}
 }
 function guardarIngreso(){
@@ -237,17 +268,36 @@ function guardarIngreso(){
   if(!d||!m){mostrarError('Escribe el concepto y un monto mayor que cero');return}
   huboError=false;
   if(enJava())javaCaja.registrarIngreso(d,String(m));
-  else{R.ingresos+=m;R.esperado+=m;M.unshift({tipo:'Ingreso',d:d,x:null,m:m,h:ahora(),e:true})}   // demo
+  else{R.ingresos+=m;R.esperado+=m;M.unshift({tipo:'Ingreso',id:Date.now(),an:false,d:d,x:null,m:m,h:ahora(),e:true})}   // demo
   if(!huboError){cerrar();cargar()}
 }
 function ahora(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':00'}
+
+// ---- Anular un ingreso o egreso (no se borra: queda en el historial) ----
+let aAnular=null;
+function pedirAnular(i){
+  aAnular=M[i];
+  $('#an-res').textContent=aAnular.tipo+': '+aAnular.d+' · '+money(aAnular.m);
+  abrir('m-anular');
+}
+function anularMov(){
+  const mo=$('#an-mo').value.trim();
+  if(!mo||!aAnular){mostrarError('Escribe el motivo de la anulación');return}
+  huboError=false;
+  if(enJava())javaCaja.anularMovimiento(aAnular.tipo,String(aAnular.id),mo);
+  else{   // demo
+    aAnular.an=true;aAnular.mo=mo;aAnular.ap='Administrador (axel)';aAnular.e=false;
+    if(aAnular.tipo==='Egreso'){R.egresos-=aAnular.m;R.esperado+=aAnular.m}else{R.ingresos-=aAnular.m;R.esperado-=aAnular.m}
+  }
+  if(!huboError){cerrar();cargar()}
+}
 
 function cerrarCaja(){
   const c=aCentavos($('#c-m').value);
   if(c===null){mostrarError('Escribe el efectivo contado');return}
   let r;
   if(enJava())r=JSON.parse(javaCaja.cerrarCaja(String(c)));
-  else r=Object.assign({ok:true,cierre:ahora(),contado:c,diferencia:c-R.esperado},R);   // demo
+  else r=Object.assign({ok:true,cierre:ahora(),cerro:'Administrador (axel)',movs:M,contado:c,diferencia:c-R.esperado},R);   // demo
   if(!r.ok)return;                       // Java ya mostró el error
   cerrar();reporte(r);
 }
@@ -257,18 +307,34 @@ function reporte(r){
   $('#panel').style.display='none';$('#acc').style.display='none';
   $('#sub').textContent='Turno cerrado';$('#tit').textContent='Reporte de cierre';
   const f=(a,b,cls)=>`<div class="fila"><span>${a}</span><span class="mono ${cls||''}">${b}</span></div>`;
+  const tit=t=>`<p class="eyebrow" style="margin-top:14px">${t}</p>`;
   const dif=r.diferencia,txt=dif===0?'La caja cuadra':(dif>0?'Sobrante':'Faltante');
+  // Ingresos y egresos con su detalle, en orden cronológico (la lista llega con lo más reciente primero)
+  const det=(r.movs||[]).filter(m=>m.tipo!=='Venta'&&!m.an).reverse();
+  const lista=det.length?tit('Ingresos y egresos de caja')+det.map(m=>{
+    const eg=m.tipo==='Egreso';
+    return `<div class="fila sub"><span>${hora(m.h)} · ${esc(m.d)}${eg?' ('+esc(m.x)+')':''}</span><span class="mono ${eg?'neg':'pos'}">${eg?'−':'+'} ${money(m.m)}</span></div>`}).join(''):'';
+  // Lo anulado no suma, pero se deja constancia: qué fue, por qué y quién lo anuló
+  const anu=(r.movs||[]).filter(m=>m.an).reverse();
+  const listaAnu=anu.length?tit('Movimientos anulados (no suman al efectivo)')+anu.map(m=>
+    `<div class="fila sub"><span>${hora(m.h)} · ${esc(m.tipo)}: ${esc(m.d)}<br>Motivo: ${esc(m.mo||'—')} · anuló ${esc(m.ap||'—')}</span><span class="mono">${money(m.m)}</span></div>`).join(''):'';
   $('#reporte').style.display='flex';
   $('#reporte').innerHTML=
     `<p class="eyebrow">Café Café</p>`+
+    f('Abrió la caja',esc(r.abrio))+f('Cerró la caja',esc(r.cerro||'—'))+
     f('Apertura',esc(r.apertura))+f('Cierre',esc(r.cierre))+
+    tit('Ventas del turno')+
+    f('Número de ventas',r.nventas)+f('En efectivo',money(r.efectivo))+
+    f('Con tarjeta',money(r.tarjeta))+f('Por transferencia',money(r.transferencia))+
+    f('<b>Total vendido</b>','<b>'+money(r.ventas)+'</b>')+
+    tit('Efectivo en caja')+
     f('Monto inicial',money(r.inicial))+f('Ventas en efectivo',money(r.efectivo))+
     f('Ingresos a caja',money(r.ingresos))+f('Egresos','− '+money(r.egresos))+
     `<div class="esp"><span class="eyebrow">Efectivo esperado</span><strong class="mono">${money(r.esperado)}</strong></div>`+
     f('Efectivo contado',money(r.contado))+
-    `<div class="dif-r"><span>${txt}</span><strong class="mono ${dif>0?'pos':dif<0?'neg':''}">${dif===0?money(0):money(Math.abs(dif))}</strong></div>`+
-    f('Ventas con tarjeta (no suman al efectivo)',money(r.tarjeta))+
-    f('Ventas por transferencia (no suman al efectivo)',money(r.transferencia))+
+    `<div class="dif-r"><span>${txt}</span><strong class="mono ${dif>0?'pos':dif<0?'neg':''}">${money(Math.abs(dif))}</strong></div>`+
+    `<p class="nota">Tarjeta y transferencia no suman al efectivo de la caja.</p>`+
+    lista+listaAnu+
     `<div class="btns"><button class="pill" id="imp">Imprimir reporte</button><button class="pill fill" id="nueva">Abrir caja nueva</button></div>`;
   $('#imp').onclick=()=>{if(enJava()&&javaCaja.imprimirReporte)javaCaja.imprimirReporte();else window.print()};
   $('#nueva').onclick=()=>{if(window.javaApp)javaApp.irA('caja.html');else location.href='caja.html'};
