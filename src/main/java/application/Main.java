@@ -10,6 +10,7 @@ import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import netscape.javascript.JSObject;
+import application.controller.ProductoBridge;
 import application.controller.VentaBridge;
 
 public class Main extends Application {
@@ -19,6 +20,7 @@ public class Main extends Application {
     private WebBridge bridge;
     private CajaBridge cajaBridge;
     private VentaBridge ventaBridge;
+    private ProductoBridge productoBridge;
 
     @Override
     public void start(Stage stage) {
@@ -30,6 +32,7 @@ public class Main extends Application {
         bridge = new WebBridge(engine);
         cajaBridge = new CajaBridge(engine, bridge);
         ventaBridge = new VentaBridge(engine, bridge);
+        productoBridge = new ProductoBridge(engine, bridge);
 
         // Cada vez que carga una página, se le entregan los puentes: window.javaApp y
         // window.javaCaja
@@ -39,6 +42,7 @@ public class Main extends Application {
                 window.setMember("javaApp", bridge);
                 window.setMember("javaCaja", cajaBridge);
                 window.setMember("javaVenta", ventaBridge);
+                window.setMember("javaProductos", productoBridge);
                 engine.executeScript("window.onJavaReady && window.onJavaReady()");
             }
         });

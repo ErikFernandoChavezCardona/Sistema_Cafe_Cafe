@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Productos</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{display:flex;overflow:hidden}
+nav{width:164px;flex:none;background:var(--prof);color:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:2px}
+.wm{font-family:var(--t);font-size:24px;text-transform:lowercase;padding:0 10px 22px}
+nav a{padding:12px 10px;border-radius:12px;color:rgba(255,255,255,.78);text-decoration:none;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;transition:background-color 150ms ease,transform 160ms var(--ease)}
+nav a.on{background:rgba(255,255,255,.16);color:#fff}
+nav a:active{transform:scale(.97)}
+nav a.soon{opacity:.5;pointer-events:none}
+@media (hover:hover) and (pointer:fine){nav a:not(.on):not(.soon):hover{background:rgba(255,255,255,.08)}}
+main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;padding:22px 26px;gap:14px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.acc{display:flex;gap:10px}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tools .in{width:250px;margin-right:6px}
+.chip{min-height:40px;padding:0 16px;border-radius:999px;background:var(--niebla);color:var(--prof);font-weight:600;
+  transition:background-color 150ms ease,transform 160ms var(--ease)}
+.chip.on{background:var(--prof);color:#fff}
+.chip:active{transform:scale(.97)}
+.tabla{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid var(--linea);border-radius:14px;overflow:hidden}
+#lista{flex:1;overflow-y:auto}
+.r{display:grid;grid-template-columns:2.2fr 1.5fr .9fr .9fr .7fr 1.1fr 56px 84px;gap:12px;align-items:center;padding:6px 20px;
+  border-bottom:1px solid var(--linea);min-height:54px}
+.th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:42px;flex:none}
+.r.off{opacity:.6}
+.b{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600}
+.b.ok{background:var(--niebla);color:var(--prof)}.b.warn{background:#FDE9C8;color:#7A4A00}
+.sw{width:56px;height:44px;display:flex;align-items:center}
+.sw i{display:block;width:44px;height:24px;border-radius:12px;background:var(--prof);position:relative;transition:background-color 150ms ease}
+.sw i:after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all 150ms ease}
+.sw.off i{background:#8196a5}.sw.off i:after{right:auto;left:3px}
+.ed{min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid var(--prof);color:var(--prof);font-weight:600;font-size:12px;
+  letter-spacing:.06em;text-transform:uppercase;transition:transform 160ms var(--ease),background-color 150ms ease}
+.ed:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){.ed:hover{background:var(--niebla)}}
+.pie{flex:none;padding:12px 20px;color:var(--suave);font-size:13px}
+.empty{color:var(--suave);text-align:center;margin:40px 0}
+.nota{color:var(--suave);font-size:12px}
+.fondo{position:fixed;inset:0;background:rgba(16,34,47,.45);display:none;place-items:center;z-index:10}
+.fondo.on{display:grid}
+.modal{width:min(440px,92vw);max-height:92vh;overflow-y:auto;background:var(--crema);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:12px}
+.modal.wide{width:min(940px,94vw)}
+.modal form{display:flex;flex-direction:column;gap:12px}
+.modal label{display:block;font-size:12px;color:var(--suave);margin:0 0 4px 8px}
+.dos{display:grid;grid-template-columns:300px 1fr;gap:24px}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+select.in{appearance:none}
+.in.m{font-family:var(--m)}
+.btns{display:flex;gap:10px;margin-top:6px}.btns .pill{flex:1}
+.ln{display:grid;grid-template-columns:1fr 110px 96px 40px;gap:10px;align-items:center;min-height:46px;border-bottom:1px solid var(--linea)}
+.ln .in{padding:8px 10px;text-align:center;font-family:var(--m)}
+.ln small{color:var(--suave)}
+.x{width:40px;height:40px;color:var(--suave);font-size:20px;border-radius:50%}
+.x:active{transform:scale(.92)}
+.add{display:grid;grid-template-columns:1fr 150px auto;gap:8px;align-items:center;margin-top:8px}
+.add .pill{padding:11px 18px}
+.res{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px;padding-top:12px;border-top:2px solid var(--prof)}
+.res b{display:block;font-weight:400;font-size:20px;font-family:var(--m)}
+.cr{display:grid;grid-template-columns:80px 1fr 70px 56px;gap:10px;align-items:center;min-height:50px;border-bottom:1px solid var(--linea)}
+.cr .mvb{min-width:36px;min-height:40px;border-radius:12px;border:1px solid var(--linea);color:var(--prof)}
+.cr .mvb:disabled{opacity:.3}
+.cr .mvb:active{transform:scale(.94)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;z-index:20;display:none}
+#toast.err{background:#b4492f}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a class="on" href="productos.html">Productos</a>
+  <a class="soon" href="#">Insumos</a>
+  <a class="soon" href="#">Egresos</a>
+  <a class="soon" href="#">Facturas</a>
+  <a class="soon" href="#">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div><p class="eyebrow">Menú del local</p><h1 class="h">Productos</h1></div>
+    <div class="acc">
+      <button class="pill" data-abrir="cat">Categorías</button>
+      <button class="pill fill" data-nuevo>Nuevo producto</button>
+    </div>
+  </header>
+  <div class="tools">
+    <input class="in" id="q" placeholder="Buscar producto…" aria-label="Buscar producto" autocomplete="off">
+    <span id="chips" style="display:contents"></span>
+  </div>
+  <section class="tabla">
+    <div class="r th"><span>Producto</span><span>Categoría</span><span>Precio</span><span>Costo</span><span>Margen</span><span>Receta</span><span>Activo</span><span></span></div>
+    <div id="lista"></div>
+    <div class="pie" id="pie"></div>
+  </section>
+</main>
+
+<div class="fondo" id="m-prod"><div class="modal wide">
+  <h2 class="h" id="mp-t" style="font-size:22px">Producto</h2>
+  <form id="f-prod">
+    <div class="dos">
+      <div class="col">
+        <div><label for="p-n">Nombre</label><input class="in" id="p-n" maxlength="60" autocomplete="off"></div>
+        <div><label for="p-c">Categoría</label><select class="in" id="p-c"></select></div>
+        <div><label for="p-p">Precio de venta (L)</label><input class="in m" id="p-p" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span>Activo en Venta</span>
+          <button type="button" class="sw" id="p-a" data-sw aria-pressed="true" aria-label="Activo en Venta"><i></i></button></div>
+        <p class="nota">Un cambio de precio aplica solo a ventas nuevas: lo ya vendido no cambia.</p>
+      </div>
+      <div class="col">
+        <p class="eyebrow">Receta · lo que gasta una unidad</p>
+        <div id="rc-l"></div>
+        <div class="add">
+          <select class="in" id="rc-i" aria-label="Insumo"></select>
+          <input class="in m" id="rc-q" inputmode="numeric" placeholder="Cantidad" aria-label="Cantidad" autocomplete="off">
+          <button type="button" class="pill" data-add>Agregar</button>
+        </div>
+        <div class="res">
+          <div><span class="eyebrow">Precio</span><b id="s-p"></b></div>
+          <div><span class="eyebrow">Costo</span><b id="s-k"></b></div>
+          <div><span class="eyebrow">Ganancia</span><b id="s-g"></b></div>
+          <div><span class="eyebrow">Margen</span><b id="s-m"></b></div>
+        </div>
+        <p class="nota" id="s-n"></p>
+      </div>
+    </div>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar</button></div>
+  </form>
+</div></div>
+
+<div class="fondo" id="m-cat"><div class="modal">
+  <h2 class="h" style="font-size:22px">Categorías</h2>
+  <p class="nota">El orden es el del menú en Venta. Ocultar una categoría oculta todos sus productos.</p>
+  <div id="cat-l"></div>
+  <div class="add" style="grid-template-columns:1fr auto">
+    <input class="in" id="nc-n" maxlength="40" placeholder="Nueva categoría" aria-label="Nueva categoría" autocomplete="off">
+    <button type="button" class="pill" data-nc>Agregar</button>
+  </div>
+  <div class="btns"><button type="button" class="pill fill" data-cerrar>Listo</button></div>
+</div></div>
+
+<div id="toast" role="alert"></div>
+
+<script>
+// ---- Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java), para diseñar ----
+const DEMO_CAT=[{id:1,n:'Sodas & Bobbas',a:true,np:2},{id:2,n:'Smoothies',a:true,np:4},{id:6,n:'Frappés',a:false,np:1}];
+const DEMO_PROD=[
+ {id:1,c:1,cn:'Sodas & Bobbas',n:'Soda Italiana',p:8000,a:true,l:1,s:0,k:2150,e:'Completa'},
+ {id:2,c:1,cn:'Sodas & Bobbas',n:'Bobba Pop',p:9500,a:true,l:1,s:0,k:3020,e:'Completa'},
+ {id:3,c:2,cn:'Smoothies',n:'Smoothie Fresa',p:10000,a:true,l:5,s:0,k:3240,e:'Completa'},
+ {id:4,c:2,cn:'Smoothies',n:'Smoothie Mangada',p:10000,a:true,l:0,s:0,k:0,e:'Sin receta'},
+ {id:5,c:2,cn:'Smoothies',n:'Smoothie Mango Moy',p:10000,a:true,l:2,s:1,k:1500,e:'Falta costo'},
+ {id:6,c:6,cn:'Frappés',n:'Frappé Moka',p:12000,a:false,l:0,s:0,k:0,e:'Sin receta'}];
+const DEMO_INS=[{id:1,n:'Fresa congelada',u:'g',c:96000},{id:2,n:'Leche Entera',u:'ml',c:25000},{id:3,n:'Azúcar Blanca',u:'g',c:40000},{id:4,n:'Vasos 14 oz',u:'ud',c:0}];
+const DEMO_REC={3:[{i:1,n:'Fresa congelada',u:'g',q:150,c:96000},{i:2,n:'Leche Entera',u:'ml',q:200,c:25000},{i:3,n:'Azúcar Blanca',u:'g',q:20,c:40000}]};
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const money=c=>'L '+(c/100).toLocaleString('en-US',{minimumFractionDigits:2});   // el dinero viaja en centavos
+// Lo que escribe el cajero ("55", "55,50") a centavos enteros; null si no es un número válido
+function aCentavos(txt){const v=parseFloat(String(txt).replace(',','.'));return isNaN(v)||v<0?null:Math.round(v*100)}
+const enJava=()=>!!window.javaProductos;
+
+let PROD=[],CAT=[],INS=[],cat=0,E={id:null,lineas:[]};
+
+function cargar(){
+  if(enJava()){PROD=JSON.parse(javaProductos.productos());CAT=JSON.parse(javaProductos.categorias());INS=JSON.parse(javaProductos.insumos())}
+  else{PROD=DEMO_PROD;CAT=DEMO_CAT;INS=DEMO_INS}
+  if(cat&&!CAT.some(c=>c.id===cat))cat=0;
+  pintarChips();pintarLista();pintarCats();
+}
+function pintarChips(){
+  $('#chips').innerHTML=[{id:0,n:'Todas',a:true}].concat(CAT).map(c=>
+    `<button class="chip${c.id===cat?' on':''}" data-chip="${c.id}">${esc(c.n)}${c.a?'':' (oculta)'}</button>`).join('');
+}
+function pintarLista(){
+  const q=norm($('#q').value.trim());
+  const lista=PROD.filter(p=>(!cat||p.c===cat)&&(!q||norm(p.n).includes(q)));
+  $('#lista').innerHTML=lista.length?lista.map(fila).join(''):'<p class="empty">No hay productos que coincidan</p>';
+  const sin=PROD.filter(p=>p.e==='Sin receta').length;
+  $('#pie').textContent=lista.length+' de '+PROD.length+' productos'+(sin?' · '+sin+' sin receta':'')+
+    '. Los productos inactivos no aparecen en Venta, pero se conservan en los reportes.';
+}
+function fila(p){
+  const ok=p.l>0&&p.s===0;                       // el costo solo es confiable con receta y todos los insumos con costo
+  const margen=ok&&p.p>0?Math.round((p.p-p.k)*100/p.p)+'%':'—';
+  return `<div class="r${p.a?'':' off'}"><b>${esc(p.n)}</b><span>${esc(p.cn)}</span><span class="mono">${money(p.p)}</span>
+    <span class="mono">${ok?money(p.k):'—'}</span><span class="mono">${margen}</span>
+    <span><span class="b ${p.e==='Completa'?'ok':'warn'}">${esc(p.e)}</span></span>
+    <button class="sw${p.a?'':' off'}" data-act="${p.id}" aria-pressed="${p.a}" aria-label="Activo: ${esc(p.n)}"><i></i></button>
+    <button class="ed" data-ed="${p.id}">Editar</button></div>`;
+}
+
+// ---- Avisos ----
+let tt;
+function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3500)}
+window.mostrarError=m=>toast(m,true);
+const aviso=m=>toast(m,false);
+const demo=()=>{aviso('Modo diseño (sin Java): no se guarda');};
+
+window.onJavaReady=()=>{
+  // Solo el administrador cambia el menú
+  if(!javaProductos.esAdministrador()){javaApp.irA('pos.html');return}
+  cargar();
+};
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar()},400));
+
+// ---- Ventanas ----
+function abrir(id){$('#'+id).classList.add('on')}
+function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>f.classList.remove('on'))}
+
+// ---- Activar / ocultar un producto ----
+function alternarProducto(id){
+  const p=PROD.find(x=>x.id===id);if(!p)return;
+  if(!enJava()){p.a=!p.a;pintarLista();return}
+  javaProductos.activarProducto(String(id),p.a?'0':'1');
+  cargar();
+}
+
+// ---- Crear / editar producto ----
+function abrirProducto(id){
+  const p=id?PROD.find(x=>x.id===id):null;
+  E={id:id||null,lineas:[]};
+  $('#mp-t').textContent=p?'Editar producto':'Nuevo producto';
+  $('#p-n').value=p?p.n:'';
+  // Solo categorías visibles, más la actual del producto aunque esté oculta
+  $('#p-c').innerHTML=CAT.filter(c=>c.a||(p&&c.id===p.c)).map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join('');
+  const sel=p?p.c:cat;
+  if(sel)$('#p-c').value=String(sel);
+  $('#p-p').value=p?(p.p/100).toFixed(2):'';
+  fijarSw($('#p-a'),p?p.a:true);
+  $('#rc-i').innerHTML=INS.map(i=>`<option value="${i.id}">${esc(i.n)} (${esc(i.u)})</option>`).join('');
+  $('#rc-q').value='';
+  if(p){
+    const r=enJava()?JSON.parse(javaProductos.receta(String(id))):(DEMO_REC[id]||[]);
+    E.lineas=r.map(l=>({i:l.i,n:l.n,u:l.u,q:l.q,c:l.c}));
+  }
+  unidad();pintarLineas();abrir('m-prod');
+  setTimeout(()=>$('#p-n').focus(),30);
+}
+function fijarSw(b,on){b.setAttribute('aria-pressed',on);b.classList.toggle('off',!on)}
+function unidad(){
+  const i=INS.find(x=>x.id===+$('#rc-i').value);
+  $('#rc-q').placeholder=i?'Cantidad ('+i.u+')':'Cantidad';
+}
+const costoLinea=l=>Math.round(l.q*l.c/1000);   // l.c = centavos por 1000 unidades base
+function pintarLineas(){
+  $('#rc-l').innerHTML=E.lineas.length?E.lineas.map((l,k)=>
+    `<div class="ln"><span>${esc(l.n)} <small>(${esc(l.u)})</small></span>
+     <input class="in" inputmode="numeric" value="${l.q}" data-q="${k}" aria-label="Cantidad de ${esc(l.n)}">
+     <span class="mono" id="lc${k}"></span>
+     <button type="button" class="x" data-del="${k}" aria-label="Quitar ${esc(l.n)}">×</button></div>`).join('')
+    :'<p class="nota" style="margin:8px 0">Sin receta todavía. Agrega los insumos que gasta una unidad.</p>';
+  resumen();
+}
+function resumen(){
+  const ok=E.lineas.length>0&&E.lineas.every(l=>l.c>0);
+  let k=0;
+  E.lineas.forEach((l,i)=>{const c=costoLinea(l);k+=c;const el=$('#lc'+i);if(el)el.textContent=l.c>0?money(c):'sin costo'});
+  const p=aCentavos($('#p-p').value)||0;
+  $('#s-p').textContent=money(p);
+  $('#s-k').textContent=ok?money(k):'—';
+  $('#s-g').textContent=ok?money(p-k):'—';
+  $('#s-m').textContent=ok&&p>0?Math.round((p-k)*100/p)+'%':'—';
+  $('#s-n').textContent=ok?'':(E.lineas.length
+    ?'Algún insumo no tiene costo todavía (se llena en la pantalla Insumos). Mientras tanto no se calcula el margen.'
+    :'Sin receta no se puede calcular el costo ni el margen.');
+}
+function agregarLinea(){
+  const ins=INS.find(i=>i.id===+$('#rc-i').value),q=parseInt($('#rc-q').value,10);
+  if(!ins){mostrarError('No hay insumos para agregar');return}
+  if(isNaN(q)||q<=0){mostrarError('Escribe una cantidad mayor que cero (número entero)');return}
+  if(E.lineas.some(l=>l.i===ins.id)){mostrarError('Ese insumo ya está en la receta');return}
+  E.lineas.push({i:ins.id,n:ins.n,u:ins.u,q:q,c:ins.c});
+  $('#rc-q').value='';pintarLineas();
+}
+function guardarProducto(){
+  const n=$('#p-n').value.trim(),c=$('#p-c').value,p=aCentavos($('#p-p').value);
+  if(!n){mostrarError('Escribe el nombre del producto');return}
+  if(!c){mostrarError('Primero crea una categoría');return}
+  if(!p){mostrarError('Escribe un precio mayor que cero');return}
+  if(E.lineas.some(l=>!(l.q>0))){mostrarError('Hay cantidades en cero en la receta');return}
+  if(!enJava()){demo();cerrar();return}
+  const rec=E.lineas.map(l=>l.i+':'+l.q).join(',');
+  const r=JSON.parse(javaProductos.guardarProducto(E.id?String(E.id):'',c,n,String(p),
+    $('#p-a').getAttribute('aria-pressed')==='true'?'1':'0',rec));
+  if(!r.ok)return;                      // Java ya mostró el motivo
+  cerrar();cargar();aviso('Producto guardado');
+}
+
+// ---- Categorías ----
+function pintarCats(){
+  $('#cat-l').innerHTML=CAT.map((c,i)=>
+    `<div class="cr"><span><button class="mvb" data-mv="${c.id}:-1" aria-label="Subir ${esc(c.n)}"${i===0?' disabled':''}>↑</button><button class="mvb" data-mv="${c.id}:1" aria-label="Bajar ${esc(c.n)}"${i===CAT.length-1?' disabled':''}>↓</button></span>
+     <input class="in" value="${esc(c.n)}" maxlength="40" data-cn="${c.id}" aria-label="Nombre de la categoría">
+     <span class="nota">${c.np} prod.</span>
+     <button class="sw${c.a?'':' off'}" data-ca="${c.id}" aria-pressed="${c.a}" aria-label="Visible: ${esc(c.n)}"><i></i></button></div>`).join('');
+}
+function moverCat(par){
+  if(!enJava()){demo();return}
+  const [id,dir]=par.split(':');
+  javaProductos.moverCategoria(id,dir);cargar();
+}
+function alternarCat(id){
+  const c=CAT.find(x=>x.id===id);if(!c)return;
+  if(!enJava()){demo();return}
+  javaProductos.activarCategoria(String(id),c.a?'0':'1');cargar();
+}
+function renombrarCat(id,nombre){
+  if(!enJava()){demo();return}
+  const r=JSON.parse(javaProductos.guardarCategoria(String(id),nombre));
+  cargar();                              // si falló, se vuelve a mostrar el nombre anterior
+  if(r.ok)aviso('Categoría guardada');
+}
+function nuevaCat(){
+  const n=$('#nc-n').value.trim();
+  if(!n){mostrarError('Escribe el nombre de la categoría');return}
+  if(!enJava()){demo();return}
+  const r=JSON.parse(javaProductos.guardarCategoria('',n));
+  if(r.ok){$('#nc-n').value='';cargar();aviso('Categoría creada')}
+}
+
+// ---- Eventos ----
+document.addEventListener('click',e=>{
+  if(e.target.id==='m-cat'){cerrar();return}      // el de producto no se cierra al tocar afuera: se perderían los cambios
+  const b=e.target.closest('button');if(!b)return;
+  const d=b.dataset;
+  if(d.abrir==='cat'){pintarCats();abrir('m-cat')}
+  else if(d.nuevo!==undefined)abrirProducto(0);
+  else if(d.ed)abrirProducto(+d.ed);
+  else if(d.act)alternarProducto(+d.act);
+  else if(d.chip!==undefined){cat=+d.chip;pintarChips();pintarLista()}
+  else if(d.sw!==undefined)fijarSw(b,b.getAttribute('aria-pressed')!=='true');
+  else if(d.add!==undefined)agregarLinea();
+  else if(d.del!==undefined){E.lineas.splice(+d.del,1);pintarLineas()}
+  else if(d.cerrar!==undefined)cerrar();
+  else if(d.mv)moverCat(d.mv);
+  else if(d.ca)alternarCat(+d.ca);
+  else if(d.nc!==undefined)nuevaCat();
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='q')pintarLista();
+  else if(t.id==='p-p')resumen();
+  else if(t.dataset.q!==undefined){const v=parseInt(t.value,10);E.lineas[+t.dataset.q].q=isNaN(v)||v<0?0:v;resumen()}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.cn!==undefined)renombrarCat(+t.dataset.cn,t.value);
+  else if(t.id==='rc-i')unidad();
+});
+document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='f-prod')guardarProducto()});
+// Enter en la cantidad agrega el insumo (no debe guardar todo el producto)
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='rc-q'){e.preventDefault();agregarLinea()}});
+</script>
+</body>
+</html>
