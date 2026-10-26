@@ -43,6 +43,28 @@ aside input{text-align:center;font-weight:600}
 .empty{color:var(--suave);text-align:center;margin-top:40px}
 .tot{display:flex;justify-content:space-between;align-items:baseline}
 .tot strong{font-size:30px;font-weight:400}
+[hidden]{display:none!important}
+.pend{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pend:empty{display:none}
+.pe{padding:7px 14px;border-radius:999px;background:var(--niebla);color:var(--prof);font-weight:600;transition:background-color 150ms ease,transform 160ms var(--ease)}
+.pe small{margin-left:8px;color:var(--tinta)}
+.pe.on{background:var(--prof);color:#fff}.pe.on small{color:#fff}
+.pe:active{transform:scale(.97)}
+.lnk{color:var(--suave);font-size:13px;text-decoration:underline;padding:4px}
+.mo{position:fixed;inset:0;background:rgba(16,34,47,.45);display:grid;place-items:center;z-index:50;animation:fade 150ms ease}
+.mb{background:var(--crema);border-radius:14px;padding:26px;width:min(440px,92vw);display:flex;flex-direction:column;gap:14px;animation:pop 200ms var(--ease)}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:scale(.95)}}
+.met{display:flex;gap:8px}.met .chip{flex:1}
+.rap{display:flex;gap:8px;flex-wrap:wrap}.rap .chip{padding:6px 14px}
+.in.m{text-align:center;font-family:var(--m);font-size:22px}
+.cam{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-top:1px solid var(--linea)}
+.cam b{font-size:28px;font-weight:400}
+.acc{display:flex;gap:10px}.acc .pill{flex:1}
+.ok{text-align:center;align-items:center}
+#toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,10px);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;
+  opacity:0;pointer-events:none;transition:opacity 200ms ease,transform 200ms var(--ease);z-index:60}
+#toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
@@ -73,18 +95,23 @@ aside input{text-align:center;font-weight:600}
     <div><p class="eyebrow">Turno abierto · Caja 1</p><h1 class="h">Punto de venta</h1></div>
     <input class="in" id="q" placeholder="Buscar producto…" aria-label="Buscar producto" autocomplete="off">
   </header>
+  <div class="pend" id="pend"></div>
   <div class="pos">
     <section class="cat"><div id="chips"></div><div id="grid"></div></section>
     <aside>
       <p class="eyebrow">Comanda</p>
-      <input class="in" placeholder="Nombre: Mesa 5, Para llevar…" aria-label="Nombre de la comanda">
+      <input class="in" id="nom" maxlength="40" placeholder="Nombre: Mesa 5, Para llevar…" aria-label="Nombre de la comanda">
       <div id="items"></div>
       <div class="tot"><span class="eyebrow">Total</span><strong class="mono" id="tot">L 0.00</strong></div>
       <button class="pill" id="hold">Guardar pendiente</button>
       <button class="pill fill" id="pay">Cobrar</button>
+      <button class="lnk" id="cancel" hidden>Cancelar comanda</button>
     </aside>
   </div>
 </main>
+
+<div id="mo" class="mo" hidden></div>
+<div id="toast" role="alert"></div>
 
 <script>
 const ICONOS=['taza','frappe','smoothie','soda','waffle','cocina','nevada','extra'];
@@ -103,8 +130,9 @@ function cargar(d){C=d.categorias;P=d.productos;if(cat&&!C.some(c=>c.id===cat))c
 window.onJavaReady=()=>{
   if(!javaApp.hayTurnoAbierto()){javaApp.irA('caja.html');return}
   cargar(JSON.parse(javaApp.catalogo()));
+  pendientes();
 };
-window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar(DEMO)},400));
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp){cargar(DEMO);pendientes()}},400));
 function chips(){$('#chips').innerHTML=[{id:0,nombre:'Todos'},...C].map(c=>`<button class="chip${c.id===cat?' on':''}" data-c="${c.id}">${esc(c.nombre)}</button>`).join('')}
 function grid(){
  const f=q?P.filter(p=>norm(p.n).includes(q)):P.filter(p=>!cat||p.c===cat);   // al buscar, mira todas las categorías
@@ -117,13 +145,109 @@ function ticket(){
    <span class="mono">${money(p.p*q)}</span></div>`).join(''):'<p class="empty">Toca un producto para agregarlo</p>';
   const t=r.reduce((s,[p,q])=>s+p.p*q,0);$('#tot').textContent=money(t);$('#pay').disabled=$('#hold').disabled=!t;
 }
+// ---------- Comandas pendientes y cobro ----------
+let idVenta=0,metodo='Efectivo',recC=0,sinConfirmar=false;
+const V=()=>window.javaVenta||DEMO_V;   // sin Java (en el navegador) usa datos de ejemplo en memoria
+const lineas=()=>Object.entries(cart).map(([id,n])=>id+':'+n).join(',');   // formato que entiende Java: "12:2,35:1"
+const nombre=()=>$('#nom').value.trim();
+const total=()=>Object.entries(cart).reduce((s,[id,n])=>s+(prod(+id)?prod(+id).p*n:0),0);
+let tT;function aviso(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),4000)}
+window.mostrarError=aviso;   // Java llama a esta función cuando algo falla
+function limpiar(){cart={};idVenta=0;sinConfirmar=false;$('#nom').value='';$('#cancel').hidden=true;ticket();pendientes()}
+function pendientes(){
+  const l=JSON.parse(V().pendientes());
+  $('#pend').innerHTML=l.length?'<span class="eyebrow">Pendientes</span>'+l.map(p=>`<button class="pe${p.id===idVenta?' on':''}" data-id="${p.id}">${esc(p.n)}<small class="mono">${money(p.t)}</small></button>`).join(''):'';
+}
+function abrirPend(id){
+  if(Object.keys(cart).length&&+id!==idVenta){aviso('Guarda o cobra la comanda actual antes de abrir otra');return}
+  const c=JSON.parse(V().abrirPendiente(String(id)));
+  if(!c.id){aviso('Esa comanda ya no está pendiente');pendientes();return}
+  cart={};let fuera=0;
+  c.lineas.forEach(l=>{if(prod(l.id))cart[l.id]=l.q;else fuera++});
+  idVenta=c.id;$('#nom').value=c.nombre;$('#cancel').hidden=false;ticket();pendientes();
+  if(fuera)aviso('Un producto ya no está disponible y se quitó de la comanda');
+}
+function guardarPend(){
+  const r=JSON.parse(V().guardarPendiente(String(idVenta),nombre(),lineas()));
+  if(r.ok){limpiar();aviso('Comanda guardada')}
+}
+function cancelarPend(){   // pide confirmar con un segundo toque, para no cancelar sin querer
+  const b=$('#cancel');
+  if(!sinConfirmar){sinConfirmar=true;b.textContent='¿Seguro? Toca otra vez para cancelar';setTimeout(()=>{sinConfirmar=false;b.textContent='Cancelar comanda'},3000);return}
+  const r=JSON.parse(V().cancelarPendiente(String(idVenta)));
+  b.textContent='Cancelar comanda';
+  if(r.ok){limpiar();aviso('Comanda cancelada')}
+}
+function abrirCobro(){
+  if(!total())return;
+  metodo='Efectivo';recC=0;pintarCobro();$('#mo').hidden=false;
+}
+function pintarCobro(){
+  const t=total(),ef=metodo==='Efectivo';
+  $('#mo').innerHTML=`<div class="mb" role="dialog" aria-modal="true" aria-label="Cobrar">
+   <p class="eyebrow">Cobrar${nombre()?' · '+esc(nombre()):''}</p>
+   <div class="tot"><span class="eyebrow">Total</span><strong class="mono">${money(t)}</strong></div>
+   <div class="met">${['Efectivo','Tarjeta','Transferencia'].map(x=>`<button class="chip${x===metodo?' on':''}" data-met="${x}">${x}</button>`).join('')}</div>
+   ${ef?`<input class="in m" id="rec" inputmode="decimal" autocomplete="off" placeholder="Recibido L 0.00" value="${recC?recC/100:''}">
+   <div class="rap"><button class="chip" data-rap="${t}">Exacto</button><button class="chip" data-rap="10000">L 100</button><button class="chip" data-rap="50000">L 500</button></div>
+   <div class="cam"><span class="eyebrow">Cambio</span><b class="mono" id="cam"></b></div>`:'<p class="empty" style="margin:6px 0">Se cobra el total exacto.</p>'}
+   <div class="acc"><button class="pill" data-volver="1">Volver</button><button class="pill fill" id="ok">Confirmar cobro</button></div></div>`;
+  refrescar();
+  if(ef)$('#rec').focus();
+}
+function refrescar(){   // actualiza cambio y botón sin volver a dibujar (así no se pierde el cursor al escribir)
+  const t=total(),ef=metodo==='Efectivo';
+  if(ef)$('#cam').textContent=recC>=t?money(recC-t):'—';
+  $('#ok').disabled=ef&&recC<t;
+}
+function confirmarCobro(){
+  $('#ok').disabled=true;   // evita cobrar dos veces con un doble toque
+  const r=JSON.parse(V().cobrar(String(idVenta),nombre(),lineas(),metodo,String(metodo==='Efectivo'?recC:0)));
+  if(!r.ok){refrescar();return}
+  const ef=metodo==='Efectivo';
+  limpiar();
+  $('#mo').innerHTML=`<div class="mb ok" role="dialog" aria-modal="true" aria-label="Venta cobrada">
+   <p class="eyebrow">Venta cobrada</p>
+   <strong class="mono" style="font-size:34px;font-weight:400">${money(r.total)}</strong>
+   ${ef?`<p class="mono">Recibido ${money(r.recibido)}</p><div class="cam" style="width:100%"><span class="eyebrow">Cambio</span><b class="mono">${money(r.cambio)}</b></div>`:''}
+   <button class="pill fill" id="nueva">Nueva venta</button></div>`;
+  $('#nueva').focus();
+}
+function cerrarCobro(){$('#mo').hidden=true;$('#mo').innerHTML=''}
+document.addEventListener('input',e=>{
+  if(e.target.id!=='rec')return;
+  const v=parseFloat(e.target.value.replace(',','.'));recC=isNaN(v)||v<0?0:Math.round(v*100);refrescar();
+});
+document.addEventListener('keydown',e=>{
+  if($('#mo').hidden)return;
+  if(e.key==='Escape')cerrarCobro();
+  else if(e.key==='Enter'){const b=$('#ok')||$('#nueva');if(b&&!b.disabled){e.preventDefault();b.click()}}
+});
+// Datos de ejemplo en memoria: solo para ver el diseño en el navegador (sin Java)
+const mem={id:0,pend:[]};
+const parseL=s=>s.split(',').filter(Boolean).map(x=>x.split(':').map(Number));
+const totL=l=>l.reduce((s,[id,n])=>s+(prod(id)?prod(id).p*n:0),0);
+const DEMO_V={
+ pendientes:()=>JSON.stringify(mem.pend.map(p=>({id:p.id,n:p.nombre,t:totL(p.l),h:''}))),
+ abrirPendiente:id=>{const p=mem.pend.find(x=>x.id==id);return JSON.stringify(p?{id:p.id,nombre:p.nombre,lineas:p.l.map(([i,n])=>({id:i,q:n}))}:{})},
+ guardarPendiente:(id,nom,l)=>{const p=mem.pend.find(x=>x.id==id);if(p){p.nombre=nom||'Sin nombre';p.l=parseL(l)}else mem.pend.push({id:++mem.id,nombre:nom||'Sin nombre',l:parseL(l)});return JSON.stringify({ok:true,id:p?p.id:mem.id})},
+ cobrar:(id,nom,l,met,rec)=>{const t=totL(parseL(l));if(met==='Efectivo'&&+rec<t){aviso('El monto recibido no alcanza');return '{"ok":false}'}
+   mem.pend=mem.pend.filter(x=>x.id!=id);const r=met==='Efectivo'?+rec:t;return JSON.stringify({ok:true,id:0,total:t,recibido:r,cambio:r-t})},
+ cancelarPendiente:id=>{mem.pend=mem.pend.filter(x=>x.id!=id);return '{"ok":true}'}
+};
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.c!==undefined){cat=+b.dataset.c;chips();grid()}
+  if(b.dataset.met){metodo=b.dataset.met;recC=0;pintarCobro()}
+  else if(b.dataset.rap!==undefined){recC=+b.dataset.rap;pintarCobro()}
+  else if(b.dataset.volver||b.id==='nueva')cerrarCobro()
+  else if(b.id==='ok')confirmarCobro()
+  else if(b.dataset.c!==undefined){cat=+b.dataset.c;chips();grid()}
   else if(b.classList.contains('p')){const id=b.dataset.id;cart[id]=(cart[id]||0)+1;ticket()}
   else if(b.dataset.m){const id=b.dataset.id;cart[id]+=b.dataset.m==='+'?1:-1;if(cart[id]<1)delete cart[id];ticket()}
-  else if(b.id==='pay'&&window.javaApp&&javaApp.cobrar)javaApp.cobrar(JSON.stringify(cart));
-  else if(b.id==='hold'&&window.javaApp&&javaApp.guardarPendiente)javaApp.guardarPendiente(JSON.stringify(cart));
+  else if(b.id==='pay')abrirCobro();
+  else if(b.id==='hold')guardarPend();
+  else if(b.id==='cancel')cancelarPend();
+  else if(b.classList.contains('pe'))abrirPend(b.dataset.id);
 });
 $('#q').addEventListener('input',e=>{q=norm(e.target.value.trim());grid()});
 chips();grid();ticket();
