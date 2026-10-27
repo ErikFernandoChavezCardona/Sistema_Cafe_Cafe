@@ -1,32 +1,221 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Café Café · Insumos</title><link rel="stylesheet" href="../assets/css/cafe.css"><style>
-body{display:flex;overflow:hidden}nav{width:164px;flex:none;background:var(--prof);color:white;padding:22px 14px;display:flex;flex-direction:column;gap:4px}.wm{font:24px var(--t);padding:0 10px 22px}nav a{padding:12px 10px;border-radius:12px;color:#ddd;text-decoration:none;text-transform:uppercase;font-size:12px;letter-spacing:.12em}nav a.on{background:#ffffff26;color:white}nav a.soon{opacity:.5;pointer-events:none}main{flex:1;min-width:0;padding:25px 28px;overflow:auto}header,.tools,.actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.tools{justify-content:flex-start;margin:18px 0}.tools input{max-width:290px}.chip{border:0;border-radius:99px;padding:10px 15px;background:#deebef;color:var(--prof);cursor:pointer}.chip.on{background:var(--prof);color:white}.table{border:1px solid var(--linea);border-radius:14px;overflow:auto}.row{display:grid;grid-template-columns:1.5fr 1fr 90px 90px 1fr 100px 100px 70px;min-width:900px;gap:10px;align-items:center;padding:13px 16px;border-bottom:1px solid var(--linea)}.head{font-size:11px;color:var(--suave);letter-spacing:.1em;text-transform:uppercase}.badge{border-radius:99px;padding:5px 10px;background:#deebef;color:var(--prof);font-size:12px}.warn{background:#ffedcc;color:#80530a}.bad{background:#f7dcd5;color:#8a3924}.mono{font-family:var(--m)}.off{opacity:.52}.ed{border:1px solid var(--prof);color:var(--prof);background:none;border-radius:99px;padding:7px 12px;cursor:pointer}.foot{padding:12px 16px;color:var(--suave);font-size:12px}.shade{position:fixed;inset:0;background:#10222f80;display:none;place-items:center;z-index:5;padding:15px}.shade.on{display:grid}.modal{width:min(760px,96vw);max-height:92vh;overflow:auto;background:var(--crema);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:12px}.modal.small{width:min(460px,96vw)}.columns{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{border:1px solid var(--linea);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}.field{display:flex;flex-direction:column;gap:4px}.field label,.note{font-size:12px;color:var(--suave)}.switch{display:flex;justify-content:space-between;align-items:center}.btns{display:flex;gap:8px;justify-content:flex-end}.hist{width:100%;border-collapse:collapse;font-size:13px}.hist td,.hist th{padding:8px;border-bottom:1px solid var(--linea);text-align:left}.hist th{font-size:11px;color:var(--suave)}.provrow{display:grid;grid-template-columns:1.3fr 1fr 1fr 60px 70px;gap:7px;padding:8px;border-bottom:1px solid var(--linea)}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 18px;background:#b4492f;color:white;border-radius:99px;display:none;z-index:10}
-</style></head><body><nav><div class="wm">café café</div><a href="pos.html">Venta</a><a href="caja_panel.html">Caja</a><a href="productos.html">Productos</a><a class="on" href="insumos.html">Insumos</a><a class="soon" href="#">Egresos</a><a class="soon" href="#">Facturas</a><a class="soon" href="#">Reportes</a></nav>
-<main><header><div><p class="eyebrow">Inventario</p><h1 class="h">Insumos</h1></div><div class="actions"><button class="pill" id="prov-open">Proveedores</button><button class="pill fill" id="new">Nuevo insumo</button></div></header>
-<div class="tools"><input class="in" id="q" placeholder="Buscar insumo…"><button class="chip on" data-filter="all">Todos</button><button class="chip" data-filter="low">Stock bajo</button><button class="chip" data-filter="zero">Sin costo</button></div>
-<div class="table"><div class="row head"><span>Insumo</span><span>Proveedor</span><span>Stock</span><span>Mínimo</span><span>Costo</span><span>Estado</span><span>Usado en</span><span></span></div><div id="list"></div><div class="foot">El stock cambia con compras, ventas y ajustes. Cada cambio queda en el historial.</div></div></main>
-<div class="shade" id="detail"><div class="modal"><header><div><p class="eyebrow">← <a href="#" id="back">Insumos</a></p><h2 class="h" id="title"></h2></div><div class="actions"><button class="pill" id="adjust">Ajustar stock</button><button class="pill fill" id="save-detail">Guardar cambios</button></div></header><div class="columns"><div class="card"><p class="eyebrow">Datos</p><div class="field"><label>Nombre</label><input class="in" id="name"></div><div class="field"><label>Unidad base</label><select class="in" id="unit"><option value="g">Gramos (g)</option><option value="ml">Mililitros (ml)</option><option value="ud">Unidad (ud)</option></select></div><div class="field"><label id="costlab"></label><input class="in" id="cost" inputmode="decimal"></div><div class="field"><label>Proveedor</label><select class="in" id="provider"></select></div><div class="field"><label id="minlab"></label><input class="in" id="minimum" inputmode="decimal"></div><div class="switch">Activo <button class="chip" id="active"></button></div><p class="note" id="usage"></p></div><div class="card"><p class="eyebrow">Registrar compra</p><div class="field"><label id="buylabel"></label><input class="in" id="buyqty" inputmode="decimal"></div><div class="field"><label>Costo total (L)</label><input class="in" id="buytotal" inputmode="decimal"></div><label><input type="checkbox" id="update-cost" checked> Actualizar costo con esta compra</label><p class="note" id="after"></p><div class="btns"><button class="pill fill" id="buy">Registrar compra</button></div><p class="eyebrow">Historial</p><div id="history"></div></div></div></div></div>
-<div class="shade" id="edit-shade"><div class="modal small"><h2 class="h" id="edit-title">Nuevo insumo</h2><div class="field"><label>Nombre</label><input class="in" id="en"></div><div class="field"><label>Unidad</label><select class="in" id="eu"><option value="g">Gramos (compra por kg)</option><option value="ml">Mililitros (compra por L)</option><option value="ud">Unidad</option></select></div><div class="field"><label id="ecl">Costo</label><input class="in" id="ec"></div><div class="field"><label>Proveedor</label><select class="in" id="ep"></select></div><div class="field"><label id="eml">Stock mínimo</label><input class="in" id="em"></div><div class="switch">Activo <button class="chip on" id="ea">Sí</button></div><div class="btns"><button class="pill" data-close>Cancelar</button><button class="pill fill" id="esave">Guardar</button></div></div></div>
-<div class="shade" id="adjust-shade"><div class="modal small"><h2 class="h">Ajustar stock</h2><p class="note">Cantidad positiva suma stock; negativa registra merma o diferencia de conteo.</p><div class="field"><label id="adjlabel"></label><input class="in" id="adjqty" placeholder="+2 o -1.5"></div><div class="field"><label>Motivo obligatorio</label><input class="in" id="adjnote" maxlength="160"></div><div class="btns"><button class="pill" data-close>Cancelar</button><button class="pill fill" id="adj-save">Guardar ajuste</button></div></div></div>
-<div class="shade" id="prov-shade"><div class="modal"><h2 class="h">Proveedores</h2><p class="note">Se conservan aunque se desactiven para mantener el historial.</p><div id="plist"></div><div class="columns"><input class="in" id="pn" placeholder="Nombre"><input class="in" id="pt" placeholder="Teléfono"><input class="in" id="pr" placeholder="RTN (opcional)"><button class="pill" id="padd">Agregar</button></div><div class="btns"><button class="pill fill" data-close>Listo</button></div></div></div><div class="toast" id="toast"></div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Insumos</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{display:flex;overflow:hidden}
+nav{width:164px;flex:none;background:var(--prof);color:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:2px}
+.wm{font-family:var(--t);font-size:24px;text-transform:lowercase;padding:0 10px 22px}
+nav a{padding:12px 10px;border-radius:12px;color:rgba(255,255,255,.78);text-decoration:none;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;transition:background-color 150ms ease,transform 160ms var(--ease)}
+nav a.on{background:rgba(255,255,255,.16);color:#fff}
+nav a:active{transform:scale(.97)}
+nav a.soon{opacity:.5;pointer-events:none}
+@media (hover:hover) and (pointer:fine){nav a:not(.on):not(.soon):hover{background:rgba(255,255,255,.08)}}
+main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;padding:22px 26px;gap:14px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.acc{display:flex;gap:10px}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tools .in{width:250px;margin-right:6px}
+.chip{min-height:40px;padding:0 16px;border-radius:999px;background:var(--niebla);color:var(--prof);font-weight:600;
+  transition:background-color 150ms ease,transform 160ms var(--ease)}
+.chip.on{background:var(--prof);color:#fff}
+.chip:active{transform:scale(.97)}
+.tabla{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid var(--linea);border-radius:14px;overflow:hidden}
+#lista{flex:1;overflow-y:auto}
+.r{display:grid;grid-template-columns:2fr 1.5fr .9fr .9fr 1.4fr 1fr 1fr 84px;gap:12px;align-items:center;padding:6px 20px;
+  border-bottom:1px solid var(--linea);min-height:54px}
+.th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:42px;flex:none}
+.r.off{opacity:.6}
+.b{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600}
+.b.ok{background:var(--niebla);color:var(--prof)}.b.warn{background:#FDE9C8;color:#7A4A00}
+.b.bad{background:#F6D5CF;color:#8A2D1A}.b.off{background:var(--linea);color:var(--suave)}
+.ed{min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid var(--prof);color:var(--prof);font-weight:600;font-size:12px;
+  letter-spacing:.06em;text-transform:uppercase;transition:transform 160ms var(--ease),background-color 150ms ease}
+.ed:active{transform:scale(.97)}
+.ed:disabled{opacity:.4;cursor:default;transform:none}
+@media (hover:hover) and (pointer:fine){.ed:not(:disabled):hover{background:var(--niebla)}}
+.pie{flex:none;padding:12px 20px;color:var(--suave);font-size:13px}
+.empty{color:var(--suave);text-align:center;margin:40px 0}
+.nota{color:var(--suave);font-size:12px}
+.sw{width:56px;height:44px;display:flex;align-items:center}
+.sw i{display:block;width:44px;height:24px;border-radius:12px;background:var(--prof);position:relative;transition:background-color 150ms ease}
+.sw i:after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all 150ms ease}
+.sw.off i{background:#8196a5}.sw.off i:after{right:auto;left:3px}
+.fondo{position:fixed;inset:0;background:rgba(16,34,47,.45);display:none;place-items:center;z-index:10}
+.fondo.on{display:grid}
+.modal{width:min(900px,94vw);max-height:92vh;overflow-y:auto;background:var(--crema);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:12px}
+.pr{display:grid;grid-template-columns:2fr 1.2fr 1.6fr 1fr 56px 84px;gap:12px;align-items:center;min-height:54px;border-bottom:1px solid var(--linea)}
+.pr.off{opacity:.6}
+.pa{display:grid;grid-template-columns:1.6fr 1fr 1.2fr auto;gap:8px;align-items:center;margin-top:6px}
+.fin{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.mono{font-family:var(--m)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;z-index:20;display:none}
+#toast.err{background:#b4492f}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a class="on" href="insumos.html">Insumos</a>
+  <a class="soon" href="#">Egresos</a>
+  <a class="soon" href="#">Facturas</a>
+  <a class="soon" href="#">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div><p class="eyebrow">Inventario</p><h1 class="h">Insumos</h1></div>
+    <div class="acc">
+      <button class="pill" data-prov>Proveedores</button>
+      <button class="pill fill" data-nuevo>Nuevo insumo</button>
+    </div>
+  </header>
+  <div class="tools">
+    <input class="in" id="q" placeholder="Buscar insumo…" aria-label="Buscar insumo" autocomplete="off">
+    <span id="chips" style="display:contents"></span>
+  </div>
+  <section class="tabla">
+    <div class="r th"><span>Insumo</span><span>Proveedor</span><span>Stock</span><span>Mínimo</span><span>Costo</span><span>Estado</span><span>Usado en</span><span></span></div>
+    <div id="lista"></div>
+    <div class="pie">El stock cambia con compras, ventas y ajustes. Cada cambio queda en el historial del insumo.</div>
+  </section>
+</main>
+
+<div class="fondo" id="m-prov"><div class="modal">
+  <h2 class="h" style="font-size:22px">Proveedores</h2>
+  <p class="nota">Un proveedor desactivado ya no se ofrece al elegir uno, pero se conserva en las compras anteriores.</p>
+  <div class="pr th" style="min-height:36px"><span>Nombre</span><span>Teléfono</span><span>RTN</span><span>Insumos</span><span>Activo</span><span></span></div>
+  <div id="pv-l"></div>
+  <form class="pa" id="f-pv">
+    <input class="in" id="pv-n" maxlength="60" placeholder="Nuevo proveedor" aria-label="Nombre del proveedor" autocomplete="off">
+    <input class="in" id="pv-t" maxlength="20" placeholder="Teléfono" aria-label="Teléfono" autocomplete="off">
+    <input class="in" id="pv-r" maxlength="25" placeholder="RTN (opcional)" aria-label="RTN" autocomplete="off">
+    <span style="display:flex;gap:8px"><button class="pill" id="pv-g">Agregar</button><button type="button" class="pill" id="pv-c" hidden>Cancelar</button></span>
+  </form>
+  <div class="fin"><button class="pill fill" data-cerrar>Listo</button></div>
+</div></div>
+<div id="toast" role="alert"></div>
+
 <script>
-const $=s=>document.querySelector(s), esc=s=>String(s).replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x])), money=c=>'L '+(c/100).toLocaleString('en-US',{minimumFractionDigits:2}), fmt=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:3});
-let A=[],P=[],cur=null,edit=null,filter='all';
-const java=()=>!!window.javaInsumos, fac=u=>u==='ud'?1:1000, nat=u=>u==='g'?'kg':u==='ml'?'L':'ud', units=x=>x.u==='ud'?x.s:x.s/1000, cents=x=>{let n=Number(String(x).replace(',','.'));return isFinite(n)&&n>=0?Math.round(n*100):null}, qty=x=>{let n=Number(String(x).replace(',','.'));return isFinite(n)?n:null};
-function error(s){let t=$('#toast');t.textContent=s;t.style.display='block';clearTimeout(window.errT);window.errT=setTimeout(()=>t.style.display='none',3200)}window.mostrarError=error;
-function load(){if(java()){A=JSON.parse(javaInsumos.insumos());P=JSON.parse(javaInsumos.proveedores())}draw()}
-function draw(){let q=$('#q').value.toLowerCase(),low=A.filter(x=>x.a&&x.s<x.min).length,z=A.filter(x=>x.a&&!x.c).length;document.querySelector('[data-filter=all]').textContent='Todos · '+A.length;document.querySelector('[data-filter=low]').textContent='Stock bajo · '+low;document.querySelector('[data-filter=zero]').textContent='Sin costo · '+z;let a=A.filter(x=>(filter==='all'||filter==='low'&&x.a&&x.s<x.min||filter==='zero'&&x.a&&!x.c)&&x.n.toLowerCase().includes(q));$('#list').innerHTML=a.length?a.map(x=>{let st=x.s<=0?'Agotado':x.s<x.min?'Stock bajo':'Bien',cl=x.s<=0?'bad':x.s<x.min?'warn':'';return '<div class="row '+(x.a?'':'off')+'"><b>'+esc(x.n)+'</b><span>'+esc(x.prov||'—')+'</span><span class="mono">'+fmt(units(x))+' '+nat(x.u)+'</span><span class="mono">'+fmt(x.min/fac(x.u))+' '+nat(x.u)+'</span><span class="mono">'+(x.c?money(x.c)+' / '+nat(x.u):'Sin costo')+'</span><span><i class="badge '+cl+'">'+(x.a?st:'Inactivo')+'</i></span><span>'+x.uso+' productos</span><button class="ed" data-open="'+x.id+'">Ver</button></div>'}).join(''):'<p class="foot">No hay insumos que coincidan.</p>'}
-function options(el){el.innerHTML='<option value="">— Sin proveedor —</option>'+P.filter(x=>x.a||cur&&x.id===cur.pid).map(x=>'<option value="'+x.id+'">'+esc(x.n)+(x.a?'':' (inactivo)')+'</option>').join('')}
-function labels(){let u=$('#unit').value,n=nat(u);$('#costlab').textContent='Costo por '+(u==='ud'?'unidad':n)+' (L)';$('#minlab').textContent='Stock mínimo ('+n+')';$('#buylabel').textContent='Cantidad comprada ('+n+')';$('#adjlabel').textContent='Cantidad a ajustar ('+n+')';$('#ecl').textContent='Costo por '+(u==='ud'?'unidad':n)+' (L)';$('#eml').textContent='Stock mínimo ('+n+')'}
-function detail(id){cur=A.find(x=>x.id===id);if(!cur)return;$('#title').textContent=cur.n;$('#name').value=cur.n;$('#unit').value=cur.u;$('#cost').value=(cur.c/100).toFixed(2);$('#minimum').value=String(cur.min/fac(cur.u));options($('#provider'));$('#provider').value=cur.pid||'';$('#active').textContent=cur.a?'Sí':'No';$('#active').classList.toggle('on',cur.a);$('#usage').textContent=cur.uso?'Usado en '+cur.uso+' productos. Al desactivarlo, las recetas dejan de calcular costo.':'Aún no se usa en productos.';$('#buyqty').value='';$('#buytotal').value='';labels();$('#after').textContent='Stock actual: '+fmt(units(cur))+' '+nat(cur.u);history();$('#detail').classList.add('on')}
-function history(){let h=java()?JSON.parse(javaInsumos.historial(String(cur.id))):[];$('#history').innerHTML=h.length?'<table class="hist"><tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Nota</th></tr>'+h.map(m=>'<tr><td>'+esc(m.f.slice(5,16))+'</td><td>'+esc(m.t)+'</td><td class="mono">'+(m.q>0?'+ ':'− ')+fmt(Math.abs(m.q)/(m.u==='ud'?1:1000))+' '+nat(m.u)+'</td><td>'+esc(m.n)+'</td></tr>').join('')+'</table>':'<span class="note">Sin movimientos todavía.</span>'}
-function openEdit(id){edit=id||null;let x=A.find(y=>y.id===id);$('#edit-title').textContent=x?'Editar insumo':'Nuevo insumo';$('#en').value=x?x.n:'';$('#eu').value=x?x.u:'g';$('#eu').disabled=!!(x&&(x.s!==0||x.uso>0));$('#unit').value=$('#eu').value;labels();$('#ec').value=x?(x.c/100).toFixed(2):'';$('#em').value=x?x.min/fac(x.u):'0';cur=x||cur;options($('#ep'));$('#ep').value=x&&x.pid||'';$('#ea').textContent=x&&!x.a?'No':'Sí';$('#edit-shade').classList.add('on')}
-function saveDetail(){let n=$('#name').value.trim(),u=$('#unit').value,c=cents($('#cost').value),m=qty($('#minimum').value),on=$('#active').textContent==='Sí';if(!n||c===null||m===null||m<0){error('Revisa nombre, costo y stock mínimo');return}if(!on&&cur.uso&&!confirm('Este insumo se usa en recetas. Al desactivarlo, dejarán de calcular costo. ¿Continuar?'))return;let r=JSON.parse(javaInsumos.guardarInsumo(String(cur.id),n,u,String(Math.round(m*fac(u))),String(c),$('#provider').value,on?'1':'0'));if(!r.ok)return;load();cur=A.find(x=>x.id===cur.id);detail(cur.id)}
-function saveEdit(){let n=$('#en').value.trim(),u=$('#eu').value,c=cents($('#ec').value),m=qty($('#em').value);if(!n||c===null||m===null||m<0){error('Revisa nombre, costo y mínimo');return}let r=JSON.parse(javaInsumos.guardarInsumo(edit?String(edit):'',n,u,String(Math.round(m*fac(u))),String(c),$('#ep').value,$('#ea').textContent==='Sí'?'1':'0'));if(r.ok){$('#edit-shade').classList.remove('on');load()}}
-function buy(){let q=qty($('#buyqty').value),t=cents($('#buytotal').value);if(!q||q<=0||!t||t<=0){error('Cantidad y costo total deben ser mayores que cero');return}let r=JSON.parse(javaInsumos.registrarCompra(String(cur.id),String(Math.round(q*fac(cur.u))),String(t),$('#update-cost').checked?'1':'0',cur.prov||'Compra'));if(r.ok){load();cur=A.find(x=>x.id===cur.id);detail(cur.id)}}
-function adjust(){ $('#adjqty').value='';$('#adjnote').value='';$('#adjust-shade').classList.add('on')}
-function saveAdjust(){let q=qty($('#adjqty').value),n=$('#adjnote').value.trim();if(!q||!n){error('Escribe una cantidad distinta de cero y el motivo');return}let d=Math.round(q*fac(cur.u));let r=JSON.parse(javaInsumos.ajustarStock(String(cur.id),String(d),n));if(r.ok){$('#adjust-shade').classList.remove('on');load();cur=A.find(x=>x.id===cur.id);detail(cur.id)}}
-function providers(){let a=JSON.parse(javaInsumos.proveedores());$('#plist').innerHTML='<div class="provrow head"><span>Proveedor</span><span>Teléfono</span><span>RTN</span><span>Usos</span><span>Activo</span><span></span></div>'+a.map(x=>'<div class="provrow '+(x.a?'':'off')+'"><b>'+esc(x.n)+'</b><span>'+esc(x.tel||'—')+'</span><span>'+esc(x.rtn||'—')+'</span><span>'+x.uso+'</span><button class="chip" data-toggle="'+x.id+'">'+(x.a?'Sí':'No')+'</button><button class="ed" data-pedit="'+x.id+'">Editar</button></div>').join('');$('#prov-shade').classList.add('on')}
-document.addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;if(b.dataset.filter){filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('on',x===b));draw()}else if(b.dataset.open)detail(+b.dataset.open);else if(b.id==='new')openEdit(null);else if(b.id==='save-detail')saveDetail();else if(b.id==='buy')buy();else if(b.id==='adjust')adjust();else if(b.id==='adj-save')saveAdjust();else if(b.id==='esave')saveEdit();else if(b.id==='prov-open')providers();else if(b.id==='back'){e.preventDefault();$('#detail').classList.remove('on')}else if(b.dataset.close!==undefined)b.closest('.shade').classList.remove('on');else if(b.id==='active'){b.textContent=b.textContent==='Sí'?'No':'Sí';b.classList.toggle('on')}else if(b.id==='ea'){b.textContent=b.textContent==='Sí'?'No':'Sí';b.classList.toggle('on')}else if(b.id==='padd'){let n=$('#pn').value.trim();if(!n){error('Escribe el nombre del proveedor');return}let r=JSON.parse(javaInsumos.guardarProveedor('',n,$('#pt').value,$('#pr').value,'1'));if(r.ok){P=JSON.parse(javaInsumos.proveedores());providers()}}else if(b.dataset.toggle){let x=P.find(y=>y.id===+b.dataset.toggle);javaInsumos.guardarProveedor(String(x.id),x.n,x.tel,x.rtn,x.a?'0':'1');P=JSON.parse(javaInsumos.proveedores());providers()}else if(b.dataset.pedit){let x=P.find(y=>y.id===+b.dataset.pedit),n=prompt('Nombre del proveedor',x.n);if(n!==null){let tel=prompt('Teléfono',x.tel)||'',rtn=prompt('RTN',x.rtn)||'';javaInsumos.guardarProveedor(String(x.id),n,tel,rtn,x.a?'1':'0');P=JSON.parse(javaInsumos.proveedores());providers()}}});
-$('#q').addEventListener('input',draw);$('#unit').addEventListener('change',labels);$('#eu').addEventListener('change',()=>{$('#unit').value=$('#eu').value;labels()});
-window.onJavaReady=()=>{if(!javaInsumos.esAdministrador()){javaApp.irA('pos.html');return}load()};window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)load()},350));
-</script></body></html>
+// Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java).
+const DEMO=[
+ {id:1,n:'Café en grano (Espresso)',u:'g',s:2400,m:1000,c:28000,pid:3,p:'Café Santa Rosa',a:true,uso:12,mov:3},
+ {id:2,n:'Leche Entera',u:'ml',s:18000,m:10000,c:2500,pid:1,p:'Lácteos del Valle',a:true,uso:14,mov:4},
+ {id:3,n:'Leche Deslactosada',u:'ml',s:4000,m:6000,c:3100,pid:1,p:'Lácteos del Valle',a:true,uso:6,mov:1},
+ {id:4,n:'Azúcar Blanca',u:'g',s:3200,m:2000,c:0,pid:0,p:'',a:true,uso:9,mov:0},
+ {id:5,n:'Sirope de Caramelo',u:'ml',s:400,m:1000,c:14000,pid:0,p:'',a:true,uso:5,mov:1},
+ {id:6,n:'Vasos 14 oz (Helado)',u:'ud',s:320,m:200,c:420000,pid:2,p:'Empaques HN',a:true,uso:18,mov:2},
+ {id:7,n:'Pajillas',u:'ud',s:0,m:200,c:50000,pid:2,p:'Empaques HN',a:true,uso:18,mov:2}];
+const DEMO_PV=[{id:1,n:'Lácteos del Valle',t:'9988-1234',r:'0801-1990-000001',a:true,ni:2},{id:2,n:'Empaques HN',t:'9876-5432',r:'0501-1985-000002',a:true,ni:4},
+ {id:3,n:'Café Santa Rosa',t:'3344-5566',r:'',a:true,ni:1},{id:4,n:'Distribuidora Norte',t:'',r:'',a:false,ni:0}];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const money=c=>'L '+(c/100).toLocaleString('en-US',{minimumFractionDigits:2});   // el dinero viaja en centavos
+const UN={g:'kg',ml:'L',ud:'ud'};                                                // unidad "normal" de cada unidad base
+const dec=(n,m)=>String(+n.toFixed(m));                                          // sin ceros sobrantes
+const stk=(s,u)=>u==='ud'?s+' ud':dec(s/1000,2)+' '+UN[u];                       // stock: g y ml se muestran en kg y L
+const costo=i=>money(i.u==='ud'?i.c/1000:i.c)+' / '+UN[i.u];                     // costo por kg, L o unidad
+const enJava=()=>!!window.javaInsumos;
+
+let INS=[],PV=[],filtro='todos',pe=0;
+
+function estado(i){
+  if(!i.a)return{t:'Inactivo',k:'off'};
+  if(i.s<=0)return{t:'Agotado',k:'bad'};
+  if(i.s<i.m)return{t:'Stock bajo',k:'warn'};
+  return{t:'Bien',k:'ok'};
+}
+const bajo=i=>i.a&&['bad','warn'].includes(estado(i).k);
+const sinCosto=i=>i.a&&!i.c;
+
+function cargar(){
+  INS=enJava()?JSON.parse(javaInsumos.lista()):DEMO;
+  pintarChips();pintarLista();
+}
+function pintarChips(){
+  const c=[['todos','Todos',INS.length],['bajo','Stock bajo',INS.filter(bajo).length],['sin','Sin costo',INS.filter(sinCosto).length]];
+  $('#chips').innerHTML=c.map(([k,t,n])=>`<button class="chip${filtro===k?' on':''}" data-f="${k}">${t} · ${n}</button>`).join('');
+}
+function pintarLista(){
+  const q=norm($('#q').value.trim());
+  const l=INS.filter(i=>(filtro==='todos'||(filtro==='bajo'?bajo(i):sinCosto(i)))&&(!q||norm(i.n).includes(q)||norm(i.p).includes(q)));
+  $('#lista').innerHTML=l.length?l.map(fila).join(''):'<p class="empty">No hay insumos que mostrar</p>';
+}
+function fila(i){
+  const e=estado(i);
+  return `<div class="r${i.a?'':' off'}"><b>${esc(i.n)}</b><span>${esc(i.p)||'—'}</span><span class="mono">${stk(i.s,i.u)}</span>
+   <span class="mono">${stk(i.m,i.u)}</span><span class="mono">${i.c?costo(i):'<span class="b warn">Sin costo</span>'}</span>
+   <span><span class="b ${e.k}">${e.t}</span></span><span>${i.uso} producto${i.uso===1?'':'s'}</span><button class="ed" data-ver="${i.id}">Ver</button></div>`;
+}
+
+// ---- Avisos y ventanas ----
+let tt;function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3500)}
+window.mostrarError=m=>toast(m,true);
+const aviso=m=>toast(m,false);
+const demo=()=>aviso('Modo diseño (sin Java): no se guarda');
+const abrir=id=>$('#'+id).classList.add('on');
+function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>f.classList.remove('on'));cargar()}   // al cerrar se refresca la lista (cambian proveedores y conteos)
+
+window.onJavaReady=()=>{
+  if(!javaInsumos.esAdministrador()){javaApp.irA('pos.html');return}   // solo el administrador ve el inventario
+  cargar();
+};
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar()},400));
+
+// ---- Proveedores ----
+function abrirProv(){PV=enJava()?JSON.parse(javaInsumos.proveedores()):DEMO_PV;ponerForm(null);pintarProv();abrir('m-prov')}
+function pintarProv(){
+  $('#pv-l').innerHTML=PV.map(p=>`<div class="pr${p.a?'':' off'}"><b>${esc(p.n)}</b><span class="mono">${esc(p.t)||'—'}</span><span class="mono">${esc(p.r)||'—'}</span>
+   <span>${p.ni} insumo${p.ni===1?'':'s'}</span>
+   <button class="sw${p.a?'':' off'}" data-pact="${p.id}" aria-pressed="${p.a}" aria-label="Activo"><i></i></button>
+   <button class="ed" data-ped="${p.id}"${p.a?'':' disabled'}>Editar</button></div>`).join('')||'<p class="empty">Todavía no hay proveedores</p>';
+}
+function ponerForm(p){   // p = proveedor que se edita, o null para uno nuevo
+  pe=p?p.id:0;
+  $('#pv-n').value=p?p.n:'';$('#pv-t').value=p?p.t:'';$('#pv-r').value=p?p.r:'';
+  $('#pv-g').textContent=p?'Guardar':'Agregar';$('#pv-c').hidden=!p;
+  if(p)$('#pv-n').focus();
+}
+function guardarProv(){
+  const n=$('#pv-n').value.trim();
+  if(!n){mostrarError('Escribe el nombre del proveedor');return}
+  if(!enJava()){demo();return}
+  const r=JSON.parse(javaInsumos.guardarProveedor(String(pe),n,$('#pv-t').value.trim(),$('#pv-r').value.trim()));
+  if(!r.ok)return;
+  aviso(pe?'Proveedor guardado':'Proveedor agregado');
+  PV=JSON.parse(javaInsumos.proveedores());ponerForm(null);pintarProv();
+}
+function alternarProv(id){
+  const p=PV.find(x=>x.id===id);if(!p)return;
+  if(!enJava()){demo();return}
+  const r=JSON.parse(javaInsumos.activarProveedor(String(id),p.a?'0':'1'));
+  if(r.ok){PV=JSON.parse(javaInsumos.proveedores());pintarProv()}
+}
+
+// ---- Eventos ----
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const d=b.dataset;
+  if(d.prov!==undefined)abrirProv();
+  else if(d.nuevo!==undefined){enJava()?javaInsumos.abrirInsumo('0'):location.href='insumo.html'}
+  else if(d.ver){enJava()?javaInsumos.abrirInsumo(String(d.ver)):location.href='insumo.html'}
+  else if(d.f){filtro=d.f;pintarChips();pintarLista()}
+  else if(d.pact)alternarProv(+d.pact);
+  else if(d.ped)ponerForm(PV.find(p=>p.id===+d.ped));
+  else if(b.id==='pv-c')ponerForm(null);
+  else if(d.cerrar!==undefined)cerrar();
+});
+document.addEventListener('input',e=>{if(e.target.id==='q')pintarLista()});
+document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='f-pv')guardarProv()});
+</script>
+</body>
+</html>

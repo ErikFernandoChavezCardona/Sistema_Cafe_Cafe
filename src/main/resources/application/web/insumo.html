@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Insumo</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{display:flex;overflow:hidden}
+nav{width:164px;flex:none;background:var(--prof);color:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:2px}
+.wm{font-family:var(--t);font-size:24px;text-transform:lowercase;padding:0 10px 22px}
+nav a{padding:12px 10px;border-radius:12px;color:rgba(255,255,255,.78);text-decoration:none;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;transition:background-color 150ms ease,transform 160ms var(--ease)}
+nav a.on{background:rgba(255,255,255,.16);color:#fff}
+nav a:active{transform:scale(.97)}
+nav a.soon{opacity:.5;pointer-events:none}
+@media (hover:hover) and (pointer:fine){nav a:not(.on):not(.soon):hover{background:rgba(255,255,255,.08)}}
+main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;padding:22px 26px;gap:16px;overflow-y:auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.volver{font-family:var(--t);font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--prof);padding:0}
+.tit{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.acc{display:flex;gap:10px}
+.cols{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{border:1px solid var(--linea);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px}
+label{display:block;font-size:12px;color:var(--suave);margin:0 0 4px 8px}
+select.in{appearance:none}
+.in.m{font-family:var(--m)}
+.tres{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ck{display:flex;gap:10px;align-items:center;cursor:pointer}
+.ck input{width:20px;height:20px;accent-color:var(--prof)}
+.pieC{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.b{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600}
+.b.ok{background:var(--niebla);color:var(--prof)}.b.warn{background:#FDE9C8;color:#7A4A00}
+.b.bad{background:#F6D5CF;color:#8A2D1A}.b.off{background:var(--linea);color:var(--suave)}
+.sw{width:56px;height:44px;display:flex;align-items:center}
+.sw i{display:block;width:44px;height:24px;border-radius:12px;background:var(--prof);position:relative;transition:background-color 150ms ease}
+.sw i:after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all 150ms ease}
+.sw.off i{background:#8196a5}.sw.off i:after{right:auto;left:3px}
+.hr{display:grid;grid-template-columns:1.2fr .8fr 1fr 2fr;gap:12px;align-items:center;min-height:46px;border-bottom:1px solid var(--linea)}
+.hr.th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:36px}
+.hr:last-child{border:0}
+.nota{color:var(--suave);font-size:12px}
+.empty{color:var(--suave);text-align:center;margin:20px 0}
+.chip{min-height:40px;padding:0 16px;border-radius:999px;background:var(--niebla);color:var(--prof);font-weight:600;
+  transition:background-color 150ms ease,transform 160ms var(--ease)}
+.chip.on{background:var(--prof);color:#fff}
+.chip:active{transform:scale(.97)}
+.fondo{position:fixed;inset:0;background:rgba(16,34,47,.45);display:none;place-items:center;z-index:10}
+.fondo.on{display:grid}
+.modal{width:min(440px,92vw);background:var(--crema);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:12px}
+.modal form{display:flex;flex-direction:column;gap:12px}
+.seg{display:flex;gap:8px}.seg .chip{flex:1}
+.btns{display:flex;gap:10px;margin-top:6px}.btns .pill{flex:1}
+.mono{font-family:var(--m)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;z-index:20;display:none}
+#toast.err{background:#b4492f}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a class="on" href="insumos.html">Insumos</a>
+  <a class="soon" href="#">Egresos</a>
+  <a class="soon" href="#">Facturas</a>
+  <a class="soon" href="#">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div>
+      <button class="volver" data-volver>← Insumos</button>
+      <div class="tit"><h1 class="h" id="titulo">Insumo</h1><span class="b ok" id="estado" hidden></span></div>
+    </div>
+    <div class="acc">
+      <button class="pill" id="b-aj" data-ajuste>Ajustar stock</button>
+      <button class="pill fill" data-guardar>Guardar cambios</button>
+    </div>
+  </header>
+
+  <div class="cols">
+    <section class="card">
+      <p class="eyebrow">Datos</p>
+      <div><label for="n">Nombre</label><input class="in" id="n" maxlength="60" autocomplete="off"></div>
+      <div><label for="u">Unidad base</label>
+        <select class="in" id="u"><option value="g">Gramos (g)</option><option value="ml">Mililitros (ml)</option><option value="ud">Unidades (ud)</option></select></div>
+      <div><label for="c" id="l-c">Costo</label><input class="in m" id="c" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+      <div><label for="pv">Proveedor</label><select class="in" id="pv"></select></div>
+      <div><label for="m" id="l-m">Stock mínimo</label><input class="in m" id="m" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+      <div class="pieC"><span>Activo</span>
+        <button type="button" class="sw" id="a" data-sw aria-pressed="true" aria-label="Activo"><i></i></button></div>
+      <p class="nota" id="nota"></p>
+    </section>
+
+    <div class="col">
+      <section class="card" id="c-compra">
+        <p class="eyebrow">Registrar compra</p>
+        <form id="f-compra" style="display:flex;flex-direction:column;gap:12px">
+          <div class="tres">
+            <div><label for="bc" id="l-bc">Cantidad comprada</label><input class="in m" id="bc" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+            <div><label for="bt">Costo total (L)</label><input class="in m" id="bt" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+            <div><label for="bp" id="l-bp">Costo por unidad</label><input class="in m" id="bp" readonly tabindex="-1"></div>
+          </div>
+          <label class="ck"><input type="checkbox" id="bact" checked> Actualizar el costo del insumo con esta compra</label>
+          <label class="ck"><input type="checkbox" id="bcaja"> Pagado con efectivo de la caja (crea un egreso)</label>
+          <div class="pieC"><span>Stock después de la compra: <b class="mono" id="bpost"></b></span>
+            <button class="pill fill" id="bok" disabled>Registrar compra</button></div>
+        </form>
+      </section>
+      <section class="card" id="c-hist">
+        <p class="eyebrow">Historial</p>
+        <div class="hr th"><span>Fecha</span><span>Tipo</span><span>Cantidad</span><span>Nota</span></div>
+        <div id="hist"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="fondo" id="m-aj"><div class="modal">
+  <h2 class="h" style="font-size:22px">Ajustar stock</h2>
+  <p class="nota">Para un conteo físico, una merma o un derrame. Queda anotado en el historial.</p>
+  <form id="f-aj">
+    <div class="seg"><button type="button" class="chip on" data-modo="conteo">Conteo físico</button><button type="button" class="chip" data-modo="merma">Merma</button></div>
+    <div><label for="aj-q" id="aj-l">Stock real contado</label><input class="in m" id="aj-q" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+    <div><label for="aj-m">Motivo (obligatorio)</label><input class="in" id="aj-m" maxlength="80" placeholder="Ej: se derramó, conteo del cierre" autocomplete="off"></div>
+    <div class="pieC"><span>Stock quedará en: <b class="mono" id="aj-pre">—</b></span></div>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar ajuste</button></div>
+  </form>
+</div></div>
+<div id="toast" role="alert"></div>
+
+<script>
+// Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java).
+const DEMO_D={id:2,n:'Leche Entera',u:'ml',s:18000,m:10000,c:2500,pid:1,p:'Lácteos del Valle',a:true,uso:14,mov:4};
+const DEMO_PV=[{id:1,n:'Lácteos del Valle',a:true},{id:2,n:'Empaques HN',a:true},{id:3,n:'Café Santa Rosa',a:true}];
+const DEMO_MV=[{f:'2026-10-26 10:42:00',t:'Venta',q:-200,nota:'Venta #131'},{f:'2026-10-26 09:10:00',t:'Compra',q:20000,nota:'Lácteos del Valle'},
+ {f:'2026-10-25 18:30:00',t:'Ajuste',q:-1500,nota:'Merma: se derramó'},{f:'2026-10-25 14:05:00',t:'Venta',q:-200,nota:'Venta #118'}];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const money=c=>'L '+(c/100).toLocaleString('en-US',{minimumFractionDigits:2});   // el dinero viaja en centavos
+const UN={g:{big:'kilo',bigs:'kilos',s:'kg'},ml:{big:'litro',bigs:'litros',s:'L'},ud:{big:'unidad',bigs:'unidades',s:'ud'}};
+const fct=u=>u==='ud'?1:1000;                                                    // g y ml viajan en unidad base: 1 kg = 1000 g
+const dec=(n,m)=>String(+n.toFixed(m));
+const stk=(s,u)=>u==='ud'?s+' ud':dec(s/1000,2)+' '+UN[u].s;
+const mov=(q,u)=>{const a=Math.abs(q);return (q<0?'- ':'+ ')+(u==='ud'?a+' ud':a<1000?a+' '+u:dec(a/1000,2)+' '+UN[u].s)};
+const num=t=>{const v=parseFloat(String(t).replace(',','.'));return isNaN(v)||v<0?null:v};
+const aBase=(t,u)=>{const v=num(t);return v===null?null:Math.round(v*fct(u))};   // lo que escribe el usuario (kg, L, ud) a unidad base
+const aCent=t=>{const v=num(t);return v===null?null:Math.round(v*100)};
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const fecha=f=>{const [d,h]=f.split(' ');const p=d.split('-');return +p[2]+' '+MES[+p[1]-1]+' '+h.slice(0,5)};
+const enJava=()=>!!window.javaInsumos;
+
+let D=null,PV=[],MV=[],modo='conteo';
+
+function estado(i){
+  if(!i.a)return{t:'Inactivo',k:'off'};
+  if(i.s<=0)return{t:'Agotado',k:'bad'};
+  if(i.s<i.m)return{t:'Stock bajo',k:'warn'};
+  return{t:'Bien',k:'ok'};
+}
+
+function cargar(){
+  if(enJava()){
+    D=JSON.parse(javaInsumos.insumoActual());
+    if(!D.n&&D.id!==0){aviso('Ese insumo ya no existe');javaApp.irA('insumos.html');return}
+    PV=JSON.parse(javaInsumos.proveedores());MV=JSON.parse(javaInsumos.movimientos());
+  }else{D=DEMO_D;PV=DEMO_PV;MV=DEMO_MV}
+  pintar();
+}
+function etiquetas(u){
+  const x=UN[u];
+  $('#l-c').textContent='Costo por '+x.big+' (L)';
+  $('#l-m').textContent='Stock mínimo ('+x.bigs+')';
+  $('#l-bc').textContent='Cantidad comprada ('+x.s+')';
+  $('#l-bp').textContent='Costo por '+x.big;
+}
+function pintar(){
+  const nuevo=!D.id,e=estado(D);
+  $('#titulo').textContent=nuevo?'Nuevo insumo':D.n;
+  const b=$('#estado');b.hidden=nuevo;b.className='b '+e.k;b.textContent='Stock: '+stk(D.s,D.u)+' · '+e.t;
+  $('#b-aj').hidden=nuevo;$('#c-compra').hidden=nuevo;$('#c-hist').hidden=nuevo;
+  $('#n').value=D.n;
+  $('#u').value=D.u;
+  $('#u').disabled=!nuevo&&(D.mov>0||D.uso>0);   // con historial o recetas, cambiar la unidad cambiaría su significado
+  $('#c').value=D.c?(D.u==='ud'?D.c/100000:D.c/100).toFixed(2):'';
+  $('#m').value=D.m?dec(D.m/fct(D.u),3):'';
+  $('#pv').innerHTML='<option value="0">Sin proveedor</option>'+PV.filter(p=>p.a||p.id===D.pid).map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join('');
+  $('#pv').value=String(D.pid);
+  fijarSw($('#a'),D.a);
+  notaUso();
+  etiquetas(D.u);
+  $('#hist').innerHTML=MV.length?MV.map(m=>`<div class="hr"><span>${fecha(m.f)}</span><span><span class="b ${m.t==='Ajuste'?'warn':'ok'}">${esc(m.t)}</span></span>
+    <span class="mono">${mov(m.q,D.u)}</span><span>${esc(m.nota)}</span></div>`).join(''):'<p class="empty">Todavía no hay movimientos</p>';
+  recalcCompra();
+}
+function fijarSw(b,on){b.setAttribute('aria-pressed',on);b.classList.toggle('off',!on)}
+// Aviso bajo el interruptor. Se usa un aviso en pantalla y no confirm(): el WebView no muestra esos diálogos.
+function notaUso(){
+  const n=$('#nota'),activo=$('#a').getAttribute('aria-pressed')==='true';
+  n.style.color='';
+  if(!D.id){n.textContent='El stock empieza en cero: se llena registrando una compra o un ajuste.';return}
+  if(!D.uso){n.textContent='Todavía no está en ninguna receta.';return}
+  const u=`Usado en ${D.uso} producto${D.uso===1?'':'s'}.`;
+  if(activo)n.textContent=u+' Si lo desactivas, ya no se ofrece en recetas nuevas y esas recetas dejan de calcular costo.';
+  else{n.textContent='Atención: '+u+' Al guardar, esas recetas dejarán de calcular costo.';n.style.color='#b4492f'}
+}
+
+// ---- Guardar datos ----
+function guardar(){
+  const n=$('#n').value.trim(),u=$('#u').value;
+  if(!n){mostrarError('Escribe el nombre del insumo');return}
+  const cv=$('#c').value.trim()===''?0:aCent($('#c').value);
+  if(cv===null){mostrarError('El costo no es válido');return}
+  const mv=$('#m').value.trim()===''?0:aBase($('#m').value,u);
+  if(mv===null){mostrarError('El stock mínimo no es válido');return}
+  if(!enJava()){demo();return}
+  const costoX1000=cv*(u==='ud'?1000:1);   // por kg, L o unidad → por 1000 unidades base
+  const r=JSON.parse(javaInsumos.guardarInsumo(String(D.id),n,u,String(costoX1000),String(mv),$('#pv').value,$('#a').getAttribute('aria-pressed')==='true'?'1':'0'));
+  if(!r.ok)return;
+  if(!D.id){javaInsumos.abrirInsumo(String(r.id));return}   // recarga la pantalla ya como insumo existente
+  aviso('Cambios guardados');cargar();
+}
+
+// ---- Registrar compra ----
+function recalcCompra(){
+  const u=D.u,q=num($('#bc').value),t=aCent($('#bt').value),b=aBase($('#bc').value,u);
+  $('#bp').value=(q>0&&t!==null)?money(Math.round(t/q)):'';   // lo pagado entre lo comprado = costo por kilo, litro o unidad
+  $('#bpost').textContent=stk(D.s+(b||0),u);
+  $('#bok').disabled=!(b>0&&t>0);
+}
+function comprar(){
+  const b=aBase($('#bc').value,D.u),t=aCent($('#bt').value);
+  if(!(b>0)){mostrarError('Escribe la cantidad comprada');return}
+  if(!(t>0)){mostrarError('Escribe el costo total');return}
+  if(!enJava()){demo();return}
+  const r=JSON.parse(javaInsumos.registrarCompra(String(D.id),String(b),String(t),$('#bact').checked?'1':'0',$('#bcaja').checked?'1':'0'));
+  if(!r.ok)return;
+  aviso('Compra registrada');$('#bc').value='';$('#bt').value='';$('#bcaja').checked=false;cargar();
+}
+
+// ---- Ajustar stock ----
+function pintarAjuste(){
+  document.querySelectorAll('[data-modo]').forEach(b=>b.classList.toggle('on',b.dataset.modo===modo));
+  $('#aj-l').textContent=(modo==='conteo'?'Stock real contado':'Cantidad perdida')+' ('+UN[D.u].s+')';
+  const b=aBase($('#aj-q').value,D.u);
+  $('#aj-pre').textContent=b===null?'—':stk(modo==='conteo'?b:D.s-b,D.u);
+}
+function abrirAjuste(){modo='conteo';$('#aj-q').value='';$('#aj-m').value='';pintarAjuste();$('#m-aj').classList.add('on');$('#aj-q').focus()}
+function guardarAjuste(){
+  const b=aBase($('#aj-q').value,D.u),mt=$('#aj-m').value.trim();
+  if(b===null||(modo==='merma'&&b===0)){mostrarError('Escribe una cantidad válida');return}
+  if(!mt){mostrarError('Escribe el motivo del ajuste');return}
+  if(!enJava()){demo();return}
+  const r=JSON.parse(javaInsumos.ajustar(String(D.id),modo,String(b),mt));
+  if(!r.ok)return;
+  cerrar();aviso('Ajuste guardado');cargar();
+}
+
+// ---- Avisos y ventanas ----
+let tt;function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3500)}
+window.mostrarError=m=>toast(m,true);
+const aviso=m=>toast(m,false);
+const demo=()=>aviso('Modo diseño (sin Java): no se guarda');
+function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>f.classList.remove('on'))}
+
+window.onJavaReady=()=>{
+  if(!javaInsumos.esAdministrador()){javaApp.irA('pos.html');return}   // solo el administrador ve el inventario
+  cargar();
+};
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar()},400));
+
+// ---- Eventos ----
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const d=b.dataset;
+  if(d.volver!==undefined){enJava()?javaApp.irA('insumos.html'):location.href='insumos.html'}
+  else if(d.guardar!==undefined)guardar();
+  else if(d.ajuste!==undefined)abrirAjuste();
+  else if(d.modo){modo=d.modo;pintarAjuste()}
+  else if(d.sw!==undefined){fijarSw(b,b.getAttribute('aria-pressed')!=='true');notaUso()}
+  else if(d.cerrar!==undefined)cerrar();
+});
+document.addEventListener('input',e=>{
+  const id=e.target.id;
+  if(id==='bc'||id==='bt')recalcCompra();
+  else if(id==='aj-q')pintarAjuste();
+});
+document.addEventListener('change',e=>{if(e.target.id==='u')etiquetas(e.target.value)});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  if(e.target.id==='f-compra')comprar();else if(e.target.id==='f-aj')guardarAjuste();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar()});
+</script>
+</body>
+</html>
