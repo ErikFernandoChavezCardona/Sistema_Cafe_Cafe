@@ -125,7 +125,7 @@ public class InsumoBridge {
         }
     }
 
-    /** Historial del insumo seleccionado: [{"f":"2026-10-26 10:42:00","t":"Compra","q":20000,"nota":"..."}] (q con signo, en unidad base). */
+    /** Historial del insumo seleccionado: [{"f":"2026-10-26 10:42:00","t":"Compra","q":20000,"nota":"...","u":"Administrador (admin)"}] (q con signo, en unidad base). */
     public String movimientos() {
         if (!permitido() || seleccionado == 0) return "[]";
         try {
@@ -135,7 +135,8 @@ public class InsumoBridge {
                 if (!primero) b.append(',');
                 primero = false;
                 b.append("{\"f\":").append(Json.texto(m.fecha())).append(",\"t\":").append(Json.texto(m.tipo()))
-                        .append(",\"q\":").append(m.cantidad()).append(",\"nota\":").append(Json.texto(m.nota())).append('}');
+                        .append(",\"q\":").append(m.cantidad()).append(",\"nota\":").append(Json.texto(m.nota()))
+                        .append(",\"u\":").append(Json.texto(m.usuario())).append('}');
             }
             return b.append(']').toString();
         } catch (Exception e) {
@@ -145,8 +146,11 @@ public class InsumoBridge {
         }
     }
 
-    /** idInsumo "0" = nuevo. costoX1000 y minimoBase llegan como enteros en texto. Devuelve {"ok":true,"id":N}. */
-    public String guardarInsumo(String id, String nombre, String unidad, String costoX1000, String minimoBase,
+    /**
+     * idInsumo "0" = nuevo. minimoBase llega como entero en texto (unidad base). Devuelve {"ok":true,"id":N}.
+     * El costo NO se recibe: lo calculan las compras (ver InventarioDAO.registrarCompra).
+     */
+    public String guardarInsumo(String id, String nombre, String unidad, String minimoBase,
                                 String idProveedor, String activo) {
         if (!permitido()) return FALLO;
         try {
@@ -154,10 +158,9 @@ public class InsumoBridge {
             if (nombre.trim().length() > 60) throw new IllegalArgumentException("El nombre es demasiado largo");
             if (!"g".equals(unidad) && !"ml".equals(unidad) && !"ud".equals(unidad))
                 throw new IllegalArgumentException("Elige la unidad del insumo");
-            int costo = entero(costoX1000);
             int minimo = entero(minimoBase);
-            if (costo < 0 || minimo < 0) throw new IllegalArgumentException("El costo y el stock mínimo no pueden ser negativos");
-            int nuevo = dao.guardar(entero(id), nombre.trim(), unidad, costo, minimo, entero(idProveedor), "1".equals(activo));
+            if (minimo < 0) throw new IllegalArgumentException("El stock mínimo no puede ser negativo");
+            int nuevo = dao.guardar(entero(id), nombre.trim(), unidad, minimo, entero(idProveedor), "1".equals(activo));
             seleccionado = nuevo;
             return "{\"ok\":true,\"id\":" + nuevo + "}";
         } catch (Exception e) {
@@ -173,7 +176,8 @@ public class InsumoBridge {
             int total = entero(totalCentavos);
             if (cantidad <= 0) throw new IllegalArgumentException("La cantidad comprada debe ser mayor que cero");
             if (total <= 0) throw new IllegalArgumentException("El costo total debe ser mayor que cero");
-            dao.registrarCompra(entero(id), cantidad, total, "1".equals(actualizarCosto), "1".equals(pagadoCaja));
+            // permitido() ya comprobó que hay un administrador con sesión iniciada: su id queda en el historial
+            dao.registrarCompra(entero(id), cantidad, total, "1".equals(actualizarCosto), "1".equals(pagadoCaja), web.usuarioActual().id());
             return "{\"ok\":true}";
         } catch (Exception e) {
             return fallo(e);
@@ -187,7 +191,7 @@ public class InsumoBridge {
             if (motivo == null || motivo.isBlank()) throw new IllegalArgumentException("Escribe el motivo del ajuste");
             int cantidad = entero(cantidadBase);
             if (cantidad < 0 || ("merma".equals(modo) && cantidad == 0)) throw new IllegalArgumentException("Escribe una cantidad válida");
-            dao.ajustar(entero(id), modo, cantidad, motivo.trim());
+            dao.ajustar(entero(id), modo, cantidad, motivo.trim(), web.usuarioActual().id());
             return "{\"ok\":true}";
         } catch (Exception e) {
             return fallo(e);

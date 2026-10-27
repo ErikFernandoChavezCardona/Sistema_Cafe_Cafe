@@ -35,10 +35,12 @@ public class InsumoDAO {
      * todo, o no pasa nada. El stock puede quedar negativo (se vendió sin tener): la pantalla Insumos lo marca Agotado.
      */
     public static void consumir(Connection c, int idVenta) throws SQLException {
-        String movimientos = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, id_venta) "
-                + "SELECT r.id_insumo, 'Venta', -SUM(r.cantidad * d.cantidad), d.id_venta "
+        // id_usuario: el cajero que cobró esa venta (así el historial del insumo dice quién vendió)
+        String movimientos = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, id_venta, id_usuario) "
+                + "SELECT r.id_insumo, 'Venta', -SUM(r.cantidad * d.cantidad), d.id_venta, v.id_usuario "
                 + "FROM detalle_ventas d JOIN recetas r ON r.id_producto = d.id_producto "
-                + "WHERE d.id_venta = ? GROUP BY r.id_insumo, d.id_venta";
+                + "JOIN ventas v ON v.id_venta = d.id_venta "
+                + "WHERE d.id_venta = ? GROUP BY r.id_insumo, d.id_venta, v.id_usuario";
         String stock = "UPDATE insumos SET stock = stock + (SELECT SUM(m.cantidad) FROM movimientos_inventario m "
                 + "WHERE m.id_venta = ? AND m.tipo = 'Venta' AND m.id_insumo = insumos.id_insumo) "
                 + "WHERE id_insumo IN (SELECT id_insumo FROM movimientos_inventario WHERE id_venta = ? AND tipo = 'Venta')";

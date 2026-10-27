@@ -56,8 +56,12 @@ public class InventarioDAO {
         }
     }
 
-    /** Crea (id = 0) o edita un insumo. El stock NO se toca aquí: solo cambia con compras, ventas y ajustes. */
-    public int guardar(int id, String nombre, String unidad, int costoX1000, int stockMinimo, int idProveedor, boolean activo) {
+    /**
+     * Crea (id = 0) o edita un insumo. El stock y el costo NO se tocan aquí: el stock solo cambia con compras,
+     * ventas y ajustes, y el costo lo calcula cada compra (lo pagado entre lo comprado). Así nadie puede escribir
+     * un costo a mano ni pisar el que se calculó con precisión.
+     */
+    public int guardar(int id, String nombre, String unidad, int stockMinimo, int idProveedor, boolean activo) {
         try (Connection c = DatabaseConnection.getConnection()) {
             c.setAutoCommit(false);
             try {
@@ -72,28 +76,27 @@ public class InventarioDAO {
                 int resultado = id;
                 if (id > 0) {
                     revisarCambioDeUnidad(c, id, unidad);
-                    String sql = "UPDATE insumos SET nombre = ?, unidad_base = ?, costo_cent_x1000 = ?, stock_minimo = ?, "
+                    String sql = "UPDATE insumos SET nombre = ?, unidad_base = ?, stock_minimo = ?, "
                             + "id_proveedor = ?, activo = ? WHERE id_insumo = ?";
                     try (PreparedStatement ps = c.prepareStatement(sql)) {
                         ps.setString(1, nombre);
                         ps.setString(2, unidad);
-                        ps.setInt(3, costoX1000);
-                        ps.setInt(4, stockMinimo);
-                        if (idProveedor > 0) ps.setInt(5, idProveedor); else ps.setNull(5, java.sql.Types.INTEGER);
-                        ps.setInt(6, activo ? 1 : 0);
-                        ps.setInt(7, id);
+                        ps.setInt(3, stockMinimo);
+                        if (idProveedor > 0) ps.setInt(4, idProveedor); else ps.setNull(4, java.sql.Types.INTEGER);
+                        ps.setInt(5, activo ? 1 : 0);
+                        ps.setInt(6, id);
                         if (ps.executeUpdate() != 1) throw new IllegalStateException("El insumo ya no existe");
                     }
                 } else {
-                    String sql = "INSERT INTO insumos (nombre, unidad_base, costo_cent_x1000, stock_minimo, id_proveedor, activo) "
-                            + "VALUES (?, ?, ?, ?, ?, ?)";
+                    // El costo empieza en 0 (por defecto): se llena con la primera compra
+                    String sql = "INSERT INTO insumos (nombre, unidad_base, stock_minimo, id_proveedor, activo) "
+                            + "VALUES (?, ?, ?, ?, ?)";
                     try (PreparedStatement ps = c.prepareStatement(sql)) {
                         ps.setString(1, nombre);
                         ps.setString(2, unidad);
-                        ps.setInt(3, costoX1000);
-                        ps.setInt(4, stockMinimo);
-                        if (idProveedor > 0) ps.setInt(5, idProveedor); else ps.setNull(5, java.sql.Types.INTEGER);
-                        ps.setInt(6, activo ? 1 : 0);
+                        ps.setInt(3, stockMinimo);
+                        if (idProveedor > 0) ps.setInt(4, idProveedor); else ps.setNull(4, java.sql.Types.INTEGER);
+                        ps.setInt(5, activo ? 1 : 0);
                         ps.executeUpdate();
                     }
                     try (Statement s = c.createStatement(); ResultSet rs = s.executeQuery("SELECT last_insert_rowid()")) {
@@ -133,7 +136,8 @@ public class InventarioDAO {
      * (costo por 1000 unidades = lo pagado / lo comprado) y/o crea el egreso pagado con efectivo de la caja.
      * La primera escritura es la que comprueba que todo exista (insumo activo, y caja abierta si se paga con ella).
      */
-    public void registrarCompra(int idInsumo, int cantidadBase, int totalCent, boolean actualizarCosto, boolean pagadoDesdeCaja) {
+    public void registrarCompra(int idInsumo, int cantidadBase, int totalCent, boolean actualizarCosto, boolean pagadoDesdeCaja,
+                                int idUsuario) {
         try (Connection c = DatabaseConnection.getConnection()) {
             c.setAutoCommit(false);
             try {
@@ -148,12 +152,13 @@ public class InventarioDAO {
                             throw new IllegalStateException("Para pagar con efectivo de la caja primero hay que abrir la caja");
                     }
                 }
-                String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota) "
-                        + "SELECT i.id_insumo, 'Compra', ?, COALESCE(p.nombre, 'Compra') FROM insumos i "
+                String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota, id_usuario) "
+                        + "SELECT i.id_insumo, 'Compra', ?, COALESCE(p.nombre, 'Compra'), ? FROM insumos i "
                         + "LEFT JOIN proveedores p ON p.id_proveedor = i.id_proveedor WHERE i.id_insumo = ? AND i.activo = 1";
                 try (PreparedStatement ps = c.prepareStatement(mov)) {
                     ps.setInt(1, cantidadBase);
-                    ps.setInt(2, idInsumo);
+                    ps.setInt(2, idUsuario);
+                    ps.setInt(3, idInsumo);
                     if (ps.executeUpdate() != 1) throw new IllegalStateException("El insumo no existe o está desactivado");
                 }
                 int costo = (int) Math.round(totalCent * 1000.0 / cantidadBase);
@@ -180,20 +185,21 @@ public class InventarioDAO {
      * Ajuste manual con motivo. modo "conteo": cantidadBase es el stock real contado (el sistema calcula la diferencia).
      * modo "merma": cantidadBase es lo perdido (se resta, sin dejar el stock en negativo).
      */
-    public void ajustar(int idInsumo, String modo, int cantidadBase, String motivo) {
+    public void ajustar(int idInsumo, String modo, int cantidadBase, String motivo, int idUsuario) {
         boolean conteo = "conteo".equals(modo);
         if (!conteo && !"merma".equals(modo)) throw new IllegalArgumentException("Tipo de ajuste inválido");
         try (Connection c = DatabaseConnection.getConnection()) {
             c.setAutoCommit(false);
             try {
                 if (conteo) {
-                    String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota) "
-                            + "SELECT id_insumo, 'Ajuste', ? - stock, ? FROM insumos WHERE id_insumo = ? AND stock <> ?";
+                    String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota, id_usuario) "
+                            + "SELECT id_insumo, 'Ajuste', ? - stock, ?, ? FROM insumos WHERE id_insumo = ? AND stock <> ?";
                     try (PreparedStatement ps = c.prepareStatement(mov)) {
                         ps.setInt(1, cantidadBase);
                         ps.setString(2, "Conteo: " + motivo);
-                        ps.setInt(3, idInsumo);
-                        ps.setInt(4, cantidadBase);
+                        ps.setInt(3, idUsuario);
+                        ps.setInt(4, idInsumo);
+                        ps.setInt(5, cantidadBase);
                         if (ps.executeUpdate() != 1) throw new IllegalArgumentException("El conteo es igual al stock actual: no hay nada que ajustar");
                     }
                     try (PreparedStatement ps = c.prepareStatement("UPDATE insumos SET stock = ? WHERE id_insumo = ?")) {
@@ -202,13 +208,14 @@ public class InventarioDAO {
                         ps.executeUpdate();
                     }
                 } else {
-                    String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota) "
-                            + "SELECT id_insumo, 'Ajuste', -?, ? FROM insumos WHERE id_insumo = ? AND stock - ? >= 0";
+                    String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota, id_usuario) "
+                            + "SELECT id_insumo, 'Ajuste', -?, ?, ? FROM insumos WHERE id_insumo = ? AND stock - ? >= 0";
                     try (PreparedStatement ps = c.prepareStatement(mov)) {
                         ps.setInt(1, cantidadBase);
                         ps.setString(2, "Merma: " + motivo);
-                        ps.setInt(3, idInsumo);
-                        ps.setInt(4, cantidadBase);
+                        ps.setInt(3, idUsuario);
+                        ps.setInt(4, idInsumo);
+                        ps.setInt(5, cantidadBase);
                         if (ps.executeUpdate() != 1) throw new IllegalArgumentException("La merma es mayor que el stock actual");
                     }
                     try (PreparedStatement ps = c.prepareStatement("UPDATE insumos SET stock = stock - ? WHERE id_insumo = ?")) {
@@ -229,16 +236,21 @@ public class InventarioDAO {
 
     /** Historial de un insumo, lo más reciente primero. */
     public List<MovimientoInsumo> movimientos(int idInsumo, int limite) {
-        String sql = "SELECT creado_en, tipo, cantidad, "
-                + "CASE WHEN id_venta IS NOT NULL THEN 'Venta #' || id_venta ELSE COALESCE(nota, '') END "
-                + "FROM movimientos_inventario WHERE id_insumo = ? ORDER BY id_movimiento DESC LIMIT ?";
+        // El usuario sale del movimiento; en movimientos de venta viejos (sin usuario) se toma el de la venta
+        String sql = "SELECT m.creado_en, m.tipo, m.cantidad, "
+                + "CASE WHEN m.id_venta IS NOT NULL THEN 'Venta #' || m.id_venta ELSE COALESCE(m.nota, '') END, "
+                + "COALESCE(u.nombre || ' (' || u.usuario || ')', '') "
+                + "FROM movimientos_inventario m "
+                + "LEFT JOIN ventas v ON v.id_venta = m.id_venta "
+                + "LEFT JOIN usuarios u ON u.id_usuario = COALESCE(m.id_usuario, v.id_usuario) "
+                + "WHERE m.id_insumo = ? ORDER BY m.id_movimiento DESC LIMIT ?";
         List<MovimientoInsumo> lista = new ArrayList<>();
         try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, idInsumo);
             ps.setInt(2, limite);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) lista.add(new MovimientoInsumo(rs.getString(1), rs.getString(2), rs.getInt(3), rs.getString(4)));
+                while (rs.next()) lista.add(new MovimientoInsumo(rs.getString(1), rs.getString(2), rs.getInt(3), rs.getString(4), rs.getString(5)));
             }
             return lista;
         } catch (SQLException e) {

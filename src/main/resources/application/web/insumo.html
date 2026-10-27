@@ -37,10 +37,11 @@ select.in{appearance:none}
 .sw i{display:block;width:44px;height:24px;border-radius:12px;background:var(--prof);position:relative;transition:background-color 150ms ease}
 .sw i:after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all 150ms ease}
 .sw.off i{background:#8196a5}.sw.off i:after{right:auto;left:3px}
-.hr{display:grid;grid-template-columns:1.2fr .8fr 1fr 2fr;gap:12px;align-items:center;min-height:46px;border-bottom:1px solid var(--linea)}
+.hr{display:grid;grid-template-columns:1.1fr .8fr .9fr 1.5fr 1.5fr;gap:12px;align-items:center;min-height:46px;border-bottom:1px solid var(--linea)}
 .hr.th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:36px}
 .hr:last-child{border:0}
 .nota{color:var(--suave);font-size:12px}
+.in[readonly]{background:transparent;color:var(--suave)}
 .empty{color:var(--suave);text-align:center;margin:20px 0}
 .chip{min-height:40px;padding:0 16px;border-radius:999px;background:var(--niebla);color:var(--prof);font-weight:600;
   transition:background-color 150ms ease,transform 160ms var(--ease)}
@@ -87,7 +88,8 @@ select.in{appearance:none}
       <div><label for="n">Nombre</label><input class="in" id="n" maxlength="60" autocomplete="off"></div>
       <div><label for="u">Unidad base</label>
         <select class="in" id="u"><option value="g">Gramos (g)</option><option value="ml">Mililitros (ml)</option><option value="ud">Unidades (ud)</option></select></div>
-      <div><label for="c" id="l-c">Costo</label><input class="in m" id="c" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+      <div><label for="c" id="l-c">Costo</label><input class="in m" id="c" readonly tabindex="-1" placeholder="Se llena con la primera compra">
+        <p class="nota" style="margin:4px 0 0 8px">Lo calcula solo cada compra registrada (lo pagado entre lo comprado). No se escribe a mano.</p></div>
       <div><label for="pv">Proveedor</label><select class="in" id="pv"></select></div>
       <div><label for="m" id="l-m">Stock mínimo</label><input class="in m" id="m" inputmode="decimal" placeholder="0" autocomplete="off"></div>
       <div class="pieC"><span>Activo</span>
@@ -112,7 +114,7 @@ select.in{appearance:none}
       </section>
       <section class="card" id="c-hist">
         <p class="eyebrow">Historial</p>
-        <div class="hr th"><span>Fecha</span><span>Tipo</span><span>Cantidad</span><span>Nota</span></div>
+        <div class="hr th"><span>Fecha</span><span>Tipo</span><span>Cantidad</span><span>Nota</span><span>Usuario</span></div>
         <div id="hist"></div>
       </section>
     </div>
@@ -124,7 +126,8 @@ select.in{appearance:none}
   <p class="nota">Para un conteo físico, una merma o un derrame. Queda anotado en el historial.</p>
   <form id="f-aj">
     <div class="seg"><button type="button" class="chip on" data-modo="conteo">Conteo físico</button><button type="button" class="chip" data-modo="merma">Merma</button></div>
-    <div><label for="aj-q" id="aj-l">Stock real contado</label><input class="in m" id="aj-q" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+    <div><label for="aj-q" id="aj-l">Stock real contado</label><input class="in m" id="aj-q" inputmode="decimal" placeholder="0" autocomplete="off">
+      <p class="nota" id="aj-h" style="margin:4px 0 0 8px"></p></div>
     <div><label for="aj-m">Motivo (obligatorio)</label><input class="in" id="aj-m" maxlength="80" placeholder="Ej: se derramó, conteo del cierre" autocomplete="off"></div>
     <div class="pieC"><span>Stock quedará en: <b class="mono" id="aj-pre">—</b></span></div>
     <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar ajuste</button></div>
@@ -136,14 +139,16 @@ select.in{appearance:none}
 // Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java).
 const DEMO_D={id:2,n:'Leche Entera',u:'ml',s:18000,m:10000,c:2500,pid:1,p:'Lácteos del Valle',a:true,uso:14,mov:4};
 const DEMO_PV=[{id:1,n:'Lácteos del Valle',a:true},{id:2,n:'Empaques HN',a:true},{id:3,n:'Café Santa Rosa',a:true}];
-const DEMO_MV=[{f:'2026-10-26 10:42:00',t:'Venta',q:-200,nota:'Venta #131'},{f:'2026-10-26 09:10:00',t:'Compra',q:20000,nota:'Lácteos del Valle'},
- {f:'2026-10-25 18:30:00',t:'Ajuste',q:-1500,nota:'Merma: se derramó'},{f:'2026-10-25 14:05:00',t:'Venta',q:-200,nota:'Venta #118'}];
+const DEMO_MV=[{f:'2026-10-26 10:42:00',t:'Venta',q:-200,nota:'Venta #131',u:'Ana Pérez (ana)'},{f:'2026-10-26 09:10:00',t:'Compra',q:20000,nota:'Lácteos del Valle',u:'Administrador (admin)'},
+ {f:'2026-10-25 18:30:00',t:'Ajuste',q:-1500,nota:'Merma: se derramó',u:'Administrador (admin)'},{f:'2026-10-25 14:05:00',t:'Venta',q:-200,nota:'Venta #118',u:''}];
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const money=c=>'L '+(c/100).toLocaleString('en-US',{minimumFractionDigits:2});   // el dinero viaja en centavos
 const UN={g:{big:'kilo',bigs:'kilos',s:'kg'},ml:{big:'litro',bigs:'litros',s:'L'},ud:{big:'unidad',bigs:'unidades',s:'ud'}};
 const fct=u=>u==='ud'?1:1000;                                                    // g y ml viajan en unidad base: 1 kg = 1000 g
+const BASE={g:'gramos',ml:'mililitros',ud:'unidades'};                       // nombre de la unidad base de cada insumo
+const entera=t=>/^\d+$/.test(String(t).trim())?parseInt(t,10):null;           // solo dígitos: sin decimales, comas ni letras
 const dec=(n,m)=>String(+n.toFixed(m));
 const stk=(s,u)=>u==='ud'?s+' ud':dec(s/1000,2)+' '+UN[u].s;
 const mov=(q,u)=>{const a=Math.abs(q);return (q<0?'- ':'+ ')+(u==='ud'?a+' ud':a<1000?a+' '+u:dec(a/1000,2)+' '+UN[u].s)};
@@ -173,7 +178,7 @@ function cargar(){
 }
 function etiquetas(u){
   const x=UN[u];
-  $('#l-c').textContent='Costo por '+x.big+' (L)';
+  $('#l-c').textContent='Costo por '+x.big+' (L) · automático';
   $('#l-m').textContent='Stock mínimo ('+x.bigs+')';
   $('#l-bc').textContent='Cantidad comprada ('+x.s+')';
   $('#l-bp').textContent='Costo por '+x.big;
@@ -194,7 +199,7 @@ function pintar(){
   notaUso();
   etiquetas(D.u);
   $('#hist').innerHTML=MV.length?MV.map(m=>`<div class="hr"><span>${fecha(m.f)}</span><span><span class="b ${m.t==='Ajuste'?'warn':'ok'}">${esc(m.t)}</span></span>
-    <span class="mono">${mov(m.q,D.u)}</span><span>${esc(m.nota)}</span></div>`).join(''):'<p class="empty">Todavía no hay movimientos</p>';
+    <span class="mono">${mov(m.q,D.u)}</span><span>${esc(m.nota)}</span><span>${esc(m.u||'—')}</span></div>`).join(''):'<p class="empty">Todavía no hay movimientos</p>';
   recalcCompra();
 }
 function fijarSw(b,on){b.setAttribute('aria-pressed',on);b.classList.toggle('off',!on)}
@@ -213,13 +218,11 @@ function notaUso(){
 function guardar(){
   const n=$('#n').value.trim(),u=$('#u').value;
   if(!n){mostrarError('Escribe el nombre del insumo');return}
-  const cv=$('#c').value.trim()===''?0:aCent($('#c').value);
-  if(cv===null){mostrarError('El costo no es válido');return}
   const mv=$('#m').value.trim()===''?0:aBase($('#m').value,u);
   if(mv===null){mostrarError('El stock mínimo no es válido');return}
   if(!enJava()){demo();return}
-  const costoX1000=cv*(u==='ud'?1000:1);   // por kg, L o unidad → por 1000 unidades base
-  const r=JSON.parse(javaInsumos.guardarInsumo(String(D.id),n,u,String(costoX1000),String(mv),$('#pv').value,$('#a').getAttribute('aria-pressed')==='true'?'1':'0'));
+  // El costo no se envía: lo calculan las compras
+  const r=JSON.parse(javaInsumos.guardarInsumo(String(D.id),n,u,String(mv),$('#pv').value,$('#a').getAttribute('aria-pressed')==='true'?'1':'0'));
   if(!r.ok)return;
   if(!D.id){javaInsumos.abrirInsumo(String(r.id));return}   // recarga la pantalla ya como insumo existente
   aviso('Cambios guardados');cargar();
@@ -245,17 +248,30 @@ function comprar(){
 // ---- Ajustar stock ----
 function pintarAjuste(){
   document.querySelectorAll('[data-modo]').forEach(b=>b.classList.toggle('on',b.dataset.modo===modo));
-  $('#aj-l').textContent=(modo==='conteo'?'Stock real contado':'Cantidad perdida')+' ('+UN[D.u].s+')';
-  const b=aBase($('#aj-q').value,D.u);
-  $('#aj-pre').textContent=b===null?'—':stk(modo==='conteo'?b:D.s-b,D.u);
+  const merma=modo==='merma',pre=$('#aj-pre'),u=D.u,t=$('#aj-q').value;
+  // La merma se escribe SIEMPRE en la unidad base (g, ml o ud): así un "10" nunca se confunde con 10 kg
+  $('#aj-l').textContent=merma?'Cantidad perdida en '+BASE[u]+' ('+u+')':'Stock real contado ('+UN[u].s+')';
+  $('#aj-q').inputMode=merma?'numeric':'decimal';
+  $('#aj-h').textContent=merma
+    ?(u==='ud'?'Solo número entero de unidades.':'Solo en '+BASE[u]+' ('+u+'), número entero. Recuerda: 1 '+UN[u].s+' = 1000 '+u+'.')
+    :'Escribe el total que hay ahora, en '+UN[u].s+' (puede llevar decimales).';
+  pre.style.color='';
+  if(merma){
+    const q=entera(t);
+    if(q===null){pre.textContent='—';return}
+    if(q>D.s){pre.textContent='Es más de lo que hay ('+stk(D.s,u)+')';pre.style.color='#b4492f';return}
+    pre.textContent=stk(D.s-q,u)+' (se restan '+q+' '+u+')';
+  }else{const q=aBase(t,u);pre.textContent=q===null?'—':stk(q,u)}
 }
 function abrirAjuste(){modo='conteo';$('#aj-q').value='';$('#aj-m').value='';pintarAjuste();$('#m-aj').classList.add('on');$('#aj-q').focus()}
 function guardarAjuste(){
-  const b=aBase($('#aj-q').value,D.u),mt=$('#aj-m').value.trim();
-  if(b===null||(modo==='merma'&&b===0)){mostrarError('Escribe una cantidad válida');return}
+  const t=$('#aj-q').value.trim(),mt=$('#aj-m').value.trim(),merma=modo==='merma',u=D.u;
+  const q=merma?entera(t):aBase(t,u);
+  if(q===null||(merma&&q===0)){mostrarError(merma?'Escribe la cantidad perdida como número entero en '+BASE[u]+' ('+u+')':'Escribe una cantidad válida');return}
+  if(merma&&q>D.s){mostrarError('La merma no puede ser mayor que el stock actual ('+stk(D.s,u)+')');return}
   if(!mt){mostrarError('Escribe el motivo del ajuste');return}
   if(!enJava()){demo();return}
-  const r=JSON.parse(javaInsumos.ajustar(String(D.id),modo,String(b),mt));
+  const r=JSON.parse(javaInsumos.ajustar(String(D.id),modo,String(q),mt));
   if(!r.ok)return;
   cerrar();aviso('Ajuste guardado');cargar();
 }
@@ -280,7 +296,7 @@ document.addEventListener('click',e=>{
   if(d.volver!==undefined){enJava()?javaApp.irA('insumos.html'):location.href='insumos.html'}
   else if(d.guardar!==undefined)guardar();
   else if(d.ajuste!==undefined)abrirAjuste();
-  else if(d.modo){modo=d.modo;pintarAjuste()}
+  else if(d.modo){modo=d.modo;$('#aj-q').value='';pintarAjuste()}
   else if(d.sw!==undefined){fijarSw(b,b.getAttribute('aria-pressed')!=='true');notaUso()}
   else if(d.cerrar!==undefined)cerrar();
 });
