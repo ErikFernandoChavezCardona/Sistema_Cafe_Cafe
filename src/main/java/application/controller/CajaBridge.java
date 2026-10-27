@@ -63,6 +63,11 @@ public class CajaBridge {
                 error("No hay una caja abierta");
                 return;
             }
+            Usuario u = web.usuarioActual();
+            if (u == null) {
+                error("Inicia sesión de nuevo para registrar el egreso");
+                return;
+            }
             if (descripcion == null || descripcion.isBlank()) {
                 error("Escribe una descripción");
                 return;
@@ -73,9 +78,17 @@ public class CajaBridge {
                 return;
             }
             String cat = categoria == null || categoria.isBlank() ? "General" : categoria.trim();
-            egresoDAO.registrar(t.id(), cat, descripcion.trim(), monto);
+            if (!EgresoDAO.CATEGORIAS.contains(cat)) {
+                error("Elige una categoría de la lista");
+                return;
+            }
+            egresoDAO.registrar(t.id(), cat, descripcion.trim(), monto, true, u.id());
         } catch (NumberFormatException e) {
             error("Escribe un monto válido");
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+            // Sin causa = mensaje pensado para el cajero (por ejemplo, la caja se cerró)
+            error(e.getCause() == null ? e.getMessage() : "No se pudo registrar el egreso");
         } catch (Exception e) {
             e.printStackTrace();
             error("No se pudo registrar el egreso");

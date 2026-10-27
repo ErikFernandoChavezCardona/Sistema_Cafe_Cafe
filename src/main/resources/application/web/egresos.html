@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Egresos</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{display:flex;overflow:hidden}
+nav{width:164px;flex:none;background:var(--prof);color:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:2px}
+.wm{font-family:var(--t);font-size:24px;text-transform:lowercase;padding:0 10px 22px}
+nav a{padding:12px 10px;border-radius:12px;color:rgba(255,255,255,.78);text-decoration:none;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;transition:background-color 150ms ease,transform 160ms var(--ease)}
+nav a.on{background:rgba(255,255,255,.16);color:#fff}
+nav a:active{transform:scale(.97)}
+nav a.soon{opacity:.5;pointer-events:none}
+@media (hover:hover) and (pointer:fine){nav a:not(.on):not(.soon):hover{background:rgba(255,255,255,.08)}}
+main{flex:1;display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px;overflow-y:auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.acc{display:flex;gap:10px}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filtros .in{width:auto;min-width:150px}
+.filtros #f-q{width:210px}
+.filtros .fecha{width:130px;min-width:0;text-align:center;font-family:var(--m)}
+select.in{appearance:none}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{border:1px solid var(--linea);border-radius:14px;padding:14px 18px;display:flex;flex-direction:column;gap:4px}
+.card b.n{font:400 24px/1.2 var(--m)}
+.barra{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--linea)}
+.leyenda{display:flex;gap:6px 18px;flex-wrap:wrap}
+.lg{display:flex;gap:6px;align-items:center;font-size:13px}
+.lg i{display:block;width:12px;height:12px;border-radius:3px}
+.tabla{border:1px solid var(--linea);border-radius:14px;overflow:hidden;flex:none}
+.r{display:grid;grid-template-columns:1fr 2.2fr 1fr 1.4fr 1.6fr 1.1fr 1.1fr;gap:12px;align-items:center;padding:6px 20px;
+  border-bottom:1px solid var(--linea);min-height:54px}
+.th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:42px}
+.r.off{opacity:.65}
+.tach{text-decoration:line-through}
+.b{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:600}
+.b.ca{background:var(--niebla);color:var(--prof)}.b.fu{background:#EFE6CF;color:#5A4410}.b.an{background:#F6D5CC;color:#8A2E15}
+.ab{min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid var(--prof);color:var(--prof);font-weight:600;font-size:12px;
+  letter-spacing:.06em;text-transform:uppercase;transition:transform 160ms var(--ease),background-color 150ms ease}
+.ab:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){.ab:hover{background:var(--niebla)}}
+.nota{color:var(--suave);font-size:12px}
+.pie{padding:12px 20px;color:var(--suave);font-size:13px}
+.empty{color:var(--suave);text-align:center;margin:36px 0}
+.fondo{position:fixed;inset:0;background:rgba(16,34,47,.45);display:none;place-items:center;z-index:10}
+.fondo.on{display:grid}
+.modal{width:min(560px,92vw);max-height:92vh;overflow-y:auto;background:var(--crema);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:12px}
+.modal form{display:flex;flex-direction:column;gap:12px}
+.modal label.t{display:block;font-size:12px;color:var(--suave);margin:0 0 4px 8px}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.in.m{font-family:var(--m)}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+legend{padding:0;font-size:12px;color:var(--suave);margin-bottom:8px}
+.op{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1.5px solid var(--linea);border-radius:14px;cursor:pointer}
+.op.on{border-color:var(--prof);background:var(--niebla)}
+.op.dis{opacity:.55;cursor:not-allowed}
+.op input{width:20px;height:20px;margin-top:2px;accent-color:var(--prof)}
+.op small{display:block;font-size:12px;color:var(--suave)}
+.btns{display:flex;gap:10px;margin-top:6px}.btns .pill{flex:1}
+.pill.fill.peligro{background:var(--prof);border-color:var(--prof);color:#fff}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;z-index:20;display:none}
+#toast.err{background:#b4492f}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a href="insumos.html">Insumos</a>
+  <a class="on" href="egresos.html">Egresos</a>
+  <a class="soon" href="#">Facturas</a>
+  <a class="soon" href="#">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div><p class="eyebrow">Control de gastos</p><h1 class="h">Egresos</h1></div>
+    <div class="acc">
+      <button class="pill" data-exportar>Exportar</button>
+      <button class="pill fill" data-registrar>Registrar egreso</button>
+    </div>
+  </header>
+
+  <div class="filtros">
+    <select class="in" id="f-per" aria-label="Período">
+      <option value="hoy">Hoy</option><option value="semana">Esta semana</option><option value="mes" selected>Este mes</option>
+      <option value="pasado">Mes pasado</option><option value="anio">Este año</option><option value="rango">Fechas a elegir…</option>
+    </select>
+    <span id="f-rango" style="display:none;gap:6px;align-items:center">
+      <input class="in fecha" id="f-d" placeholder="AAAA-MM-DD" maxlength="10" aria-label="Desde" autocomplete="off">
+      <span class="nota">a</span>
+      <input class="in fecha" id="f-h" placeholder="AAAA-MM-DD" maxlength="10" aria-label="Hasta" autocomplete="off">
+    </span>
+    <select class="in" id="f-cat" aria-label="Categoría"><option value="">Todas las categorías</option></select>
+    <select class="in" id="f-ori" aria-label="Origen">
+      <option value="0">Caja y fuera de caja</option><option value="1">Solo desde la caja</option><option value="2">Solo fuera de la caja</option>
+    </select>
+    <select class="in" id="f-est" aria-label="Estado">
+      <option value="0">Vigentes y anulados</option><option value="1">Solo vigentes</option><option value="2">Solo anulados</option>
+    </select>
+    <input class="in" id="f-q" placeholder="Buscar descripción…" aria-label="Buscar descripción" autocomplete="off" maxlength="60">
+  </div>
+
+  <div class="kpis">
+    <div class="card"><span class="eyebrow">Total del período</span><b class="n" id="k-t">L 0.00</b></div>
+    <div class="card"><span class="eyebrow">Pagado desde la caja</span><b class="n" id="k-c">L 0.00</b></div>
+    <div class="card"><span class="eyebrow">Pagado fuera de la caja</span><b class="n" id="k-f">L 0.00</b></div>
+    <div class="card"><span class="eyebrow">Anulados</span><b class="n" id="k-a">0</b></div>
+  </div>
+
+  <section class="card" style="gap:8px">
+    <span class="eyebrow">Distribución por categoría</span>
+    <div class="barra" id="barra"></div>
+    <div class="leyenda" id="leyenda"></div>
+  </section>
+
+  <section class="tabla">
+    <div class="r th"><span>Fecha</span><span>Descripción</span><span>Categoría</span><span>Origen</span><span>Registró</span><span>Monto</span><span>Acción</span></div>
+    <div id="lista"></div>
+    <div class="pie" id="pie"></div>
+  </section>
+</main>
+
+<div class="fondo" id="m-reg"><div class="modal">
+  <h2 class="h" style="font-size:22px">Registrar egreso</h2>
+  <form id="f-reg">
+    <div><label class="t" for="r-d">Descripción</label><input class="in" id="r-d" maxlength="120" placeholder="Ej: Pago de agua potable" autocomplete="off"></div>
+    <div class="dos">
+      <div><label class="t" for="r-c">Categoría</label><select class="in" id="r-c"></select></div>
+      <div><label class="t" for="r-m">Monto (L)</label><input class="in m" id="r-m" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+    </div>
+    <fieldset>
+      <legend>¿De dónde sale el dinero?</legend>
+      <label class="op" id="op-caja"><input type="radio" name="o" value="caja" id="o-caja"><div><b>Efectivo de la caja</b><small id="s-caja"></small></div></label>
+      <label class="op" id="op-fuera"><input type="radio" name="o" value="fuera" id="o-fuera"><div><b>Fuera de la caja</b><small>Transferencia, tarjeta o dinero propio. No afecta el cierre.</small></div></label>
+    </fieldset>
+    <p class="nota" style="margin:0">Se guarda con la fecha y hora de hoy y con tu usuario. Si te equivocas, se anula con un motivo: no se borra.</p>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar egreso</button></div>
+  </form>
+</div></div>
+
+<div class="fondo" id="m-anu"><div class="modal">
+  <h2 class="h" style="font-size:22px">Anular egreso</h2>
+  <p class="nota" id="a-res" style="margin:0"></p>
+  <form id="f-anu">
+    <div><label class="t" for="a-mo">Motivo (obligatorio)</label><input class="in" id="a-mo" maxlength="120" placeholder="Ej: Me equivoqué en el monto" autocomplete="off"></div>
+    <p class="nota" style="margin:0">Queda en el historial como anulado y deja de sumar en los totales.</p>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill peligro">Anular egreso</button></div>
+  </form>
+</div></div>
+
+<div id="toast" role="alert"></div>
+
+<script>
+// ---- Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java), para diseñar ----
+const DEMO=[
+ {id:1,f:'2026-10-26 10:15:00',d:'Compra de Leche Entera',c:'Insumos',m:50000,caja:true,t:14,ts:'Abierta',u:'Administrador (admin)',an:false,mo:'',ap:'',pa:true},
+ {id:2,f:'2026-10-25 17:40:00',d:'Pago de energía eléctrica',c:'Servicios',m:235000,caja:false,t:0,ts:'',u:'Administrador (admin)',an:false,mo:'',ap:'',pa:true},
+ {id:3,f:'2026-10-25 12:30:00',d:'Taxi para entrega',c:'Transporte',m:15000,caja:true,t:13,ts:'Cerrada',u:'Ana Pérez (ana)',an:false,mo:'',ap:'',pa:false},
+ {id:4,f:'2026-10-24 08:00:00',d:'Renta del local',c:'Servicios',m:800000,caja:false,t:0,ts:'',u:'Administrador (admin)',an:false,mo:'',ap:'',pa:true},
+ {id:5,f:'2026-10-24 16:20:00',d:'Leche mal digitada',c:'Insumos',m:200000,caja:true,t:13,ts:'Cerrada',u:'Ana Pérez (ana)',an:true,mo:'Me equivoqué en el monto',ap:'Administrador (admin)',pa:false}];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const money=c=>'L '+(c/100).toLocaleString('en-US',{minimumFractionDigits:2});   // el dinero viaja en centavos
+// Lo que escribe el administrador ("55", "55,50") a centavos enteros; null si no es un número válido
+function aCentavos(txt){const v=parseFloat(String(txt).replace(',','.'));return isNaN(v)||v<0?null:Math.round(v*100)}
+const enJava=()=>!!window.javaEgresos;
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const COLORES=['#1B5A85','#F4A63C','#7FB0D3','#8196a5','#D4DDE3','#4a7d99','#c98a2e'];
+const FECHA=/^\d{4}-\d{2}-\d{2}$/;
+
+let DATOS={filas:[],r:{total:0,caja:0,fuera:0,anulados:0,cats:[]},tope:false},FIJAS=[],aAnular=null,tq;
+
+// ---- Fechas del filtro ----
+const p2=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+function rango(){
+  const per=$('#f-per').value,h=new Date();
+  if(per==='hoy')return[ymd(h),ymd(h)];
+  if(per==='semana'){const a=new Date(h);a.setDate(h.getDate()-((h.getDay()+6)%7));const b=new Date(a);b.setDate(a.getDate()+6);return[ymd(a),ymd(b)]}
+  if(per==='mes')return[ymd(new Date(h.getFullYear(),h.getMonth(),1)),ymd(new Date(h.getFullYear(),h.getMonth()+1,0))];
+  if(per==='pasado')return[ymd(new Date(h.getFullYear(),h.getMonth()-1,1)),ymd(new Date(h.getFullYear(),h.getMonth(),0))];
+  if(per==='anio')return[h.getFullYear()+'-01-01',h.getFullYear()+'-12-31'];
+  const d=$('#f-d').value.trim(),e=$('#f-h').value.trim();
+  if(!FECHA.test(d)||!FECHA.test(e))return null;     // todavía las está escribiendo
+  return[d,e];
+}
+function fmtFecha(f){
+  const m=+f.substring(5,7)-1,a=f.substring(0,4);
+  return +f.substring(8,10)+' '+MES[m]+(a!==String(new Date().getFullYear())?' '+a:'')+' '+f.substring(11,16);
+}
+
+// ---- Carga y dibujo ----
+function cargar(){
+  const rg=rango();if(!rg)return;
+  if(rg[0]>rg[1]){mostrarError('La fecha inicial no puede ser mayor que la final');return}
+  const cat=$('#f-cat').value,ori=+$('#f-ori').value,est=+$('#f-est').value,tx=$('#f-q').value.trim();
+  if(enJava()){DATOS=JSON.parse(javaEgresos.egresos(rg[0],rg[1],cat,String(ori),String(est),tx))}
+  else DATOS=demo(cat,ori,est,tx);
+  pintar();
+}
+function demo(cat,ori,est,tx){   // filtro de ejemplo, sin fechas
+  const filas=DEMO.filter(e=>(!cat||e.c===cat)&&(ori===0||(ori===1)===e.caja)&&(est===0||(est===2)===e.an)&&(!tx||e.d.toLowerCase().includes(tx.toLowerCase())));
+  const v=filas.filter(e=>!e.an),por={};v.forEach(e=>por[e.c]=(por[e.c]||0)+e.m);
+  return{filas:filas,tope:false,r:{total:v.reduce((s,e)=>s+e.m,0),caja:v.filter(e=>e.caja).reduce((s,e)=>s+e.m,0),
+    fuera:v.filter(e=>!e.caja).reduce((s,e)=>s+e.m,0),anulados:filas.filter(e=>e.an).length,
+    cats:Object.keys(por).map(c=>({c:c,m:por[c]})).sort((a,b)=>b.m-a.m)}};
+}
+function pintar(){
+  const r=DATOS.r,tot=r.cats.reduce((s,x)=>s+x.m,0);
+  $('#k-t').textContent=money(r.total);$('#k-c').textContent=money(r.caja);$('#k-f').textContent=money(r.fuera);$('#k-a').textContent=r.anulados;
+  $('#barra').innerHTML=tot?r.cats.map((x,i)=>`<span style="width:${x.m*100/tot}%;background:${COLORES[i%COLORES.length]}"></span>`).join(''):'';
+  $('#leyenda').innerHTML=tot?r.cats.map((x,i)=>
+    `<span class="lg"><i style="background:${COLORES[i%COLORES.length]}"></i>${esc(x.c)} ${Math.round(x.m*100/tot)}% · ${money(x.m)}</span>`).join('')
+    :'<span class="nota">Sin gastos vigentes en este período</span>';
+  $('#lista').innerHTML=DATOS.filas.length?DATOS.filas.map(fila).join(''):'<p class="empty">No hay egresos con estos filtros</p>';
+  $('#pie').textContent=DATOS.tope?'Se muestran los 1,000 egresos más recientes. Acota el período o los filtros para ver el resto.'
+    :DATOS.filas.length+(DATOS.filas.length===1?' egreso':' egresos')+'. Un egreso de un turno ya cerrado no se puede anular: su reporte de cierre ya se imprimió.';
+}
+function fila(e){
+  const origen=e.caja?`<span class="b ca">Caja${e.t?' · Turno '+e.t:''}</span>`:'<span class="b fu">Fuera de caja</span>';
+  const accion=e.an?'<span class="b an">Anulado</span>':(e.pa?`<button class="ab" data-anu="${e.id}">Anular</button>`:'<span class="nota">Turno cerrado</span>');
+  const desc=e.an?`<b class="tach">${esc(e.d)}</b><br><span class="nota">Motivo: ${esc(e.mo)} · anuló ${esc(e.ap||'—')}</span>`:`<b>${esc(e.d)}</b>`;
+  return `<div class="r${e.an?' off':''}"><span title="${esc(e.f)}">${fmtFecha(e.f)}</span><span>${desc}</span><span>${esc(e.c)}</span>
+    <span>${origen}</span><span>${esc(e.u||'—')}</span><span class="mono${e.an?' tach':''}">${money(e.m)}</span><span>${accion}</span></div>`;
+}
+
+// ---- Avisos ----
+let tt;
+function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3500)}
+window.mostrarError=m=>toast(m,true);
+window.aviso=m=>toast(m,false);
+
+window.onJavaReady=()=>{
+  // Solo el administrador ve los egresos de todo el negocio
+  if(!javaEgresos.esAdministrador()){javaApp.irA('pos.html');return}
+  iniciar();
+};
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)iniciar()},400));
+function iniciar(){
+  let c={fijas:['General','Insumos','Servicios','Transporte','Limpieza','Otros'],otras:[]};
+  if(enJava())c=JSON.parse(javaEgresos.categorias());
+  FIJAS=c.fijas;
+  $('#f-cat').innerHTML='<option value="">Todas las categorías</option>'+c.fijas.concat(c.otras).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  $('#r-c').innerHTML=c.fijas.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  cargar();
+}
+
+// ---- Ventanas ----
+const abrir=id=>$('#'+id).classList.add('on');
+function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>{f.classList.remove('on');f.querySelectorAll('form').forEach(x=>x.reset())})}
+
+function abrirRegistrar(){
+  let caja={abierta:true,turno:14};
+  if(enJava())caja=JSON.parse(javaEgresos.estadoCaja());
+  $('#s-caja').textContent=caja.abierta?'Turno '+caja.turno+' abierto. Resta del efectivo esperado al cerrar.':'No hay una caja abierta: ábrela para pagar con efectivo.';
+  $('#o-caja').disabled=!caja.abierta;
+  $('#op-caja').classList.toggle('dis',!caja.abierta);
+  $('#o-caja').checked=caja.abierta;$('#o-fuera').checked=!caja.abierta;
+  marcarOrigen();abrir('m-reg');
+  setTimeout(()=>$('#r-d').focus(),30);
+}
+function marcarOrigen(){$('#op-caja').classList.toggle('on',$('#o-caja').checked);$('#op-fuera').classList.toggle('on',$('#o-fuera').checked)}
+function guardarEgreso(){
+  const d=$('#r-d').value.trim(),c=$('#r-c').value,m=aCentavos($('#r-m').value),o=$('#o-caja').checked?'caja':($('#o-fuera').checked?'fuera':'');
+  if(!d){mostrarError('Escribe una descripción');return}
+  if(!c){mostrarError('Elige una categoría');return}
+  if(!m){mostrarError('Escribe un monto mayor que cero');return}
+  if(!o){mostrarError('Elige de dónde sale el dinero');return}
+  if(!enJava()){toast('Modo diseño (sin Java): no se guarda',false);cerrar();return}
+  const r=JSON.parse(javaEgresos.registrarEgreso(d,c,String(m),o));
+  if(!r.ok)return;                       // Java ya mostró el motivo
+  cerrar();cargar();aviso('Egreso registrado');
+}
+function pedirAnular(id){
+  aAnular=DATOS.filas.find(e=>e.id===id);if(!aAnular)return;
+  $('#a-res').textContent=aAnular.d+' · '+money(aAnular.m)+' · '+(aAnular.caja?'Caja':'Fuera de caja');
+  abrir('m-anu');setTimeout(()=>$('#a-mo').focus(),30);
+}
+function anular(){
+  const mo=$('#a-mo').value.trim();
+  if(!mo||!aAnular){mostrarError('Escribe el motivo de la anulación');return}
+  if(!enJava()){toast('Modo diseño (sin Java): no se guarda',false);cerrar();return}
+  const r=JSON.parse(javaEgresos.anularEgreso(String(aAnular.id),mo));
+  if(!r.ok)return;
+  cerrar();cargar();aviso('Egreso anulado');
+}
+function exportar(){
+  const rg=rango();if(!rg){mostrarError('Escribe las dos fechas (AAAA-MM-DD)');return}
+  if(!enJava()){toast('Modo diseño (sin Java): no se exporta',false);return}
+  javaEgresos.exportarCsv(rg[0],rg[1],$('#f-cat').value,$('#f-ori').value,$('#f-est').value,$('#f-q').value.trim());
+}
+
+// ---- Eventos ----
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const d=b.dataset;
+  if(d.registrar!==undefined)abrirRegistrar();
+  else if(d.anu)pedirAnular(+d.anu);
+  else if(d.exportar!==undefined)exportar();
+  else if(d.cerrar!==undefined)cerrar();
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='f-per'){$('#f-rango').style.display=t.value==='rango'?'flex':'none';cargar()}
+  else if(t.id==='f-d'||t.id==='f-h'||t.id==='f-cat'||t.id==='f-ori'||t.id==='f-est')cargar();
+  else if(t.name==='o')marcarOrigen();
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='f-q'){clearTimeout(tq);tq=setTimeout(cargar,250)}     // espera a que termine de escribir
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  if(e.target.id==='f-reg')guardarEgreso();else if(e.target.id==='f-anu')anular();
+});
+</script>
+</body>
+</html>

@@ -142,12 +142,13 @@ public class InventarioDAO {
             c.setAutoCommit(false);
             try {
                 if (pagadoDesdeCaja) {
-                    String egreso = "INSERT INTO egresos (id_turno, categoria, descripcion, monto_cent, pagado_desde_caja) "
-                            + "SELECT t.id_turno, 'Insumos', 'Compra de ' || i.nombre, ?, 1 FROM turnos_caja t, insumos i "
+                    String egreso = "INSERT INTO egresos (id_turno, categoria, descripcion, monto_cent, pagado_desde_caja, id_usuario) "
+                            + "SELECT t.id_turno, 'Insumos', 'Compra de ' || i.nombre, ?, 1, ? FROM turnos_caja t, insumos i "
                             + "WHERE t.estado = 'Abierta' AND i.id_insumo = ? AND i.activo = 1";
                     try (PreparedStatement ps = c.prepareStatement(egreso)) {
                         ps.setInt(1, totalCent);
-                        ps.setInt(2, idInsumo);
+                        ps.setInt(2, idUsuario);
+                        ps.setInt(3, idInsumo);
                         if (ps.executeUpdate() != 1)
                             throw new IllegalStateException("Para pagar con efectivo de la caja primero hay que abrir la caja");
                     }
