@@ -21,7 +21,23 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
 .filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .filtros .in{width:auto;min-width:150px}
 .filtros #f-q{width:210px}
-.filtros .fecha{width:130px;min-width:0;text-align:center;font-family:var(--m)}
+.filtros .fecha{width:158px;min-width:0;padding-right:44px;text-align:center;font-family:var(--m);cursor:pointer}
+.fw{position:relative;display:inline-flex;align-items:center}
+.cbtn{position:absolute;right:6px;width:34px;height:34px;border-radius:50%;color:var(--prof);display:grid;place-items:center;transition:background-color 150ms ease}
+@media (hover:hover) and (pointer:fine){.cbtn:hover{background:var(--niebla)}}
+#cal{position:fixed;display:none;z-index:15;width:292px;background:#fff;border:1px solid var(--linea);border-radius:16px;padding:14px;box-shadow:0 12px 32px rgba(16,34,47,.18)}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:2px;margin-bottom:8px}
+.ch b{font-family:var(--t);font-weight:400;font-size:17px;color:var(--prof);flex:1;text-align:center}
+.ch button{width:30px;height:30px;border-radius:50%;color:var(--prof);font-size:17px;font-weight:700;transition:background-color 150ms ease}
+.cs,.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cs span{font-size:11px;color:var(--suave);padding:4px 0;text-transform:uppercase}
+.dia{height:34px;border-radius:50%;font:13px var(--m);transition:background-color 120ms ease}
+.dia.en{background:var(--niebla);border-radius:8px}
+.dia.hoy{box-shadow:inset 0 0 0 1.5px var(--azul)}
+.dia.sel{background:var(--prof);color:#fff;font-weight:700;border-radius:50%}
+@media (hover:hover) and (pointer:fine){.dia:not(.sel):hover,.ch button:hover{background:var(--niebla)}}
+.cpie{display:flex;justify-content:space-between;margin-top:8px}
+.cpie button{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--prof);padding:6px 10px;border-radius:999px}
 select.in{appearance:none}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .card{border:1px solid var(--linea);border-radius:14px;padding:14px 18px;display:flex;flex-direction:column;gap:4px}
@@ -95,9 +111,11 @@ legend{padding:0;font-size:12px;color:var(--suave);margin-bottom:8px}
       <option value="pasado">Mes pasado</option><option value="anio">Este año</option><option value="rango">Fechas a elegir…</option>
     </select>
     <span id="f-rango" style="display:none;gap:6px;align-items:center">
-      <input class="in fecha" id="f-d" placeholder="AAAA-MM-DD" maxlength="10" aria-label="Desde" autocomplete="off">
+      <span class="fw"><input class="in fecha" id="f-d" data-cal="f-d" placeholder="AAAA-MM-DD" maxlength="10" aria-label="Desde" autocomplete="off">
+        <button type="button" class="cbtn" data-cal="f-d" aria-label="Elegir fecha inicial"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button></span>
       <span class="nota">a</span>
-      <input class="in fecha" id="f-h" placeholder="AAAA-MM-DD" maxlength="10" aria-label="Hasta" autocomplete="off">
+      <span class="fw"><input class="in fecha" id="f-h" data-cal="f-h" placeholder="AAAA-MM-DD" maxlength="10" aria-label="Hasta" autocomplete="off">
+        <button type="button" class="cbtn" data-cal="f-h" aria-label="Elegir fecha final"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button></span>
     </span>
     <select class="in" id="f-cat" aria-label="Categoría"><option value="">Todas las categorías</option></select>
     <select class="in" id="f-ori" aria-label="Origen">
@@ -158,6 +176,8 @@ legend{padding:0;font-size:12px;color:var(--suave);margin-bottom:8px}
     <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill peligro">Anular egreso</button></div>
   </form>
 </div></div>
+
+<div id="cal" role="dialog" aria-label="Calendario"></div>
 
 <div id="toast" role="alert"></div>
 
@@ -236,6 +256,55 @@ function fila(e){
     <span>${origen}</span><span>${esc(e.u||'—')}</span><span class="mono${e.an?' tach':''}">${money(e.m)}</span><span>${accion}</span></div>`;
 }
 
+// ---- Calendario del rango de fechas (el WebView de JavaFX no trae el de <input type="date">) ----
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let calCampo=null,calMes=null;
+const fechaValida=id=>FECHA.test($('#'+id).value.trim())?$('#'+id).value.trim():'';
+function abrirCal(id){
+  const base=fechaValida(id)||ymd(new Date());
+  calCampo=id;calMes=new Date(+base.slice(0,4),+base.slice(5,7)-1,1);
+  const cal=$('#cal');pintarCal();cal.style.display='block';
+  const r=$('#'+id).parentElement.getBoundingClientRect();
+  cal.style.top=Math.min(r.bottom+6,window.innerHeight-cal.offsetHeight-8)+'px';
+  cal.style.left=Math.max(8,Math.min(r.left,window.innerWidth-cal.offsetWidth-8))+'px';
+}
+function cerrarCal(){$('#cal').style.display='none';calCampo=null}
+function pintarCal(){
+  const d=fechaValida('f-d'),h=fechaValida('f-h'),hoy=ymd(new Date());
+  const a=calMes.getFullYear(),m=calMes.getMonth(),ini=(new Date(a,m,1).getDay()+6)%7,dias=new Date(a,m+1,0).getDate();
+  let celdas='<span></span>'.repeat(ini);
+  for(let n=1;n<=dias;n++){
+    const f=a+'-'+p2(m+1)+'-'+p2(n);
+    const c='dia'+(f===hoy?' hoy':'')+(d&&h&&f>d&&f<h?' en':'')+(f===d||f===h?' sel':'');
+    celdas+=`<button type="button" class="${c}" data-dia="${f}">${n}</button>`;
+  }
+  $('#cal').innerHTML=`<div class="ch"><button type="button" data-nav="-12" aria-label="Año anterior">«</button><button type="button" data-nav="-1" aria-label="Mes anterior">‹</button>
+    <b>${MESES[m]} ${a}</b><button type="button" data-nav="1" aria-label="Mes siguiente">›</button><button type="button" data-nav="12" aria-label="Año siguiente">»</button></div>
+    <div class="cs"><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span></div>
+    <div class="cg">${celdas}</div>
+    <div class="cpie"><button type="button" data-hoy>Hoy</button><button type="button" data-xcal>Cerrar</button></div>`;
+}
+function elegirDia(f){
+  const d=$('#f-d'),h=$('#f-h');
+  if(calCampo==='f-d'){d.value=f;if(!fechaValida('f-h')||h.value.trim()<f)h.value=f}      // la final nunca queda antes que la inicial
+  else{h.value=f;if(!fechaValida('f-d')||d.value.trim()>f)d.value=f}
+  cerrarCal();cargar();
+}
+$('#cal').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const d=b.dataset;
+  if(d.nav){calMes=new Date(calMes.getFullYear(),calMes.getMonth()+ +d.nav,1);pintarCal()}
+  else if(d.dia)elegirDia(d.dia);
+  else if(d.hoy!==undefined)elegirDia(ymd(new Date()));
+  else if(d.xcal!==undefined)cerrarCal();
+});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-cal]');if(t)abrirCal(t.dataset.cal)});
+document.addEventListener('mousedown',e=>{if(calCampo&&!e.target.closest('#cal,.fw'))cerrarCal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrarCal()});
+document.addEventListener('input',e=>{   // si escribe la fecha a mano, el calendario salta a ese mes
+  if(calCampo&&e.target.id===calCampo&&fechaValida(calCampo)){const f=fechaValida(calCampo);calMes=new Date(+f.slice(0,4),+f.slice(5,7)-1,1);pintarCal()}
+});
+
 // ---- Avisos ----
 let tt;
 function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3500)}
@@ -304,7 +373,7 @@ function anular(){
 function exportar(){
   const rg=rango();if(!rg){mostrarError('Escribe las dos fechas (AAAA-MM-DD)');return}
   if(!enJava()){toast('Modo diseño (sin Java): no se exporta',false);return}
-  javaEgresos.exportarCsv(rg[0],rg[1],$('#f-cat').value,$('#f-ori').value,$('#f-est').value,$('#f-q').value.trim());
+  javaEgresos.exportarExcel(rg[0],rg[1],$('#f-cat').value,$('#f-ori').value,$('#f-est').value,$('#f-q').value.trim());
 }
 
 // ---- Eventos ----
@@ -318,7 +387,10 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
-  if(t.id==='f-per'){$('#f-rango').style.display=t.value==='rango'?'flex':'none';cargar()}
+  if(t.id==='f-per'){
+    const r=t.value==='rango';$('#f-rango').style.display=r?'flex':'none';cerrarCal();
+    if(r&&!FECHA.test($('#f-d').value.trim())){const h=new Date();$('#f-d').value=ymd(new Date(h.getFullYear(),h.getMonth(),1));$('#f-h').value=ymd(h)}   // arranca con este mes
+    cargar()}
   else if(t.id==='f-d'||t.id==='f-h'||t.id==='f-cat'||t.id==='f-ori'||t.id==='f-est')cargar();
   else if(t.name==='o')marcarOrigen();
 });

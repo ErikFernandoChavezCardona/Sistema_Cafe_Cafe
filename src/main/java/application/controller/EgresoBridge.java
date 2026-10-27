@@ -1,5 +1,10 @@
 package application.controller;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.regex.Pattern;
+
 import application.model.dao.EgresoDAO;
 import application.model.dao.TurnoDAO;
 import application.model.entity.EgresoFila;
@@ -8,17 +13,11 @@ import application.model.entity.MontoCategoria;
 import application.model.entity.ResumenEgresos;
 import application.model.entity.Turno;
 import application.model.entity.Usuario;
+import application.util.ExcelEgresos;
 import application.util.Json;
 import javafx.application.Platform;
 import javafx.scene.web.WebEngine;
 import javafx.stage.FileChooser;
-
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
  * Puente de la pantalla Egresos (egresos.html). Se registra como window.javaEgresos.
@@ -186,8 +185,8 @@ public class EgresoBridge {
         }
     }
 
-    /** Guarda en un archivo CSV (se abre en Excel) lo que cumple los filtros: el administrador elige dónde. */
-    public void exportarCsv(String desde, String hasta, String categoria, String origen, String estado, String texto) {
+    /** Guarda en un archivo de Excel (.xlsx, con tabla) lo que cumple los filtros: el administrador elige dónde. */
+    public void exportarExcel(String desde, String hasta, String categoria, String origen, String estado, String texto) {
         if (!permitido()) return;
         try {
             FiltroEgresos f = leerFiltro(desde, hasta, categoria, origen, estado, texto);
@@ -197,34 +196,20 @@ public class EgresoBridge {
                 error("No hay egresos para exportar con esos filtros");
                 return;
             }
-            // BOM al inicio para que Excel respete las tildes; el monto va como número (sin "L") para poder sumarlo
-            StringBuilder csv = new StringBuilder("\uFEFFFecha,Descripción,Categoría,Origen,Turno,Registró,Monto (L),Estado,Motivo de anulación,Anuló\r\n");
-            for (EgresoFila e : filas) {
-                csv.append(campo(e.fecha())).append(',')
-                        .append(campo(e.descripcion())).append(',')
-                        .append(campo(e.categoria())).append(',')
-                        .append(campo(e.pagadoDesdeCaja() ? "Caja" : "Fuera de caja")).append(',')
-                        .append(e.idTurno() == null ? "" : e.idTurno()).append(',')
-                        .append(campo(e.usuario())).append(',')
-                        .append(String.format(Locale.ROOT, "%d.%02d", e.montoCent() / 100, e.montoCent() % 100)).append(',')
-                        .append(e.anulado() ? "Anulado" : "Vigente").append(',')
-                        .append(campo(e.motivoAnulacion())).append(',')
-                        .append(campo(e.anuladoPor())).append("\r\n");
-            }
-            String contenido = csv.toString();
-            String nombre = "egresos_" + f.desde() + "_a_" + f.hasta() + ".csv";
+            byte[] contenido = ExcelEgresos.generar(filas, f.desde(), f.hasta());
+            String nombre = "egresos_" + f.desde() + "_a_" + f.hasta() + ".xlsx";
             Platform.runLater(() -> {
                 try {
                     FileChooser fc = new FileChooser();
                     fc.setTitle("Guardar egresos");
                     fc.setInitialFileName(nombre);
-                    fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivo CSV (Excel)", "*.csv"));
+                    fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel", "*.xlsx"));
                     File destino = fc.showSaveDialog(null);
                     if (destino == null) return; // el administrador canceló
-                    Files.writeString(destino.toPath(), contenido, StandardCharsets.UTF_8);
+                    Files.write(destino.toPath(), contenido);
                     avisar("Archivo guardado: " + destino.getName());
                 } catch (Exception e) {
-                    falla(e, "No se pudo guardar el archivo");
+                    falla(e, "No se pudo guardar el archivo (¿está abierto en Excel?)");
                 }
             });
         } catch (Exception e) {
@@ -264,13 +249,6 @@ public class EgresoBridge {
             b.append(Json.texto(textos.get(i)));
         }
         return b.append(']').toString();
-    }
-
-    /** Un campo de CSV entre comillas (las comillas internas se duplican). Evita que Excel ejecute fórmulas escritas en un texto. */
-    private static String campo(String valor) {
-        String v = valor == null ? "" : valor;
-        if (!v.isEmpty() && "=+-@".indexOf(v.charAt(0)) >= 0) v = "'" + v;
-        return "\"" + v.replace("\"", "\"\"") + "\"";
     }
 
     /** Solo el administrador usa esta pantalla. */
