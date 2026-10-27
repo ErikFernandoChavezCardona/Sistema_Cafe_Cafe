@@ -72,7 +72,8 @@ public class EgresoBridge {
     /**
      * Egresos y resumen con los mismos filtros, en un solo JSON:
      * {"filas":[...],"r":{"total":..,"caja":..,"fuera":..,"anulados":..,"cats":[{"c":"..","m":..}]},"tope":false}.
-     * Filas: id, f (fecha), d, c (categoría), m (monto), caja, t (turno, 0 si no hay), ts (estado del turno), u, an, mo, ap, pa (se puede anular).
+     * Filas: id, f (fecha), d, c (categoría), m (monto), caja, t (turno, 0 si no hay), ts (estado del turno), u, an, mo, ap, pa (se puede anular),
+     * inv (viene de una compra de insumos: al anular se puede revertir el inventario).
      */
     public String egresos(String desde, String hasta, String categoria, String origen, String estado, String texto) {
         if (!permitido()) return "{\"filas\":[],\"r\":{\"total\":0,\"caja\":0,\"fuera\":0,\"anulados\":0,\"cats\":[]},\"tope\":false}";
@@ -98,7 +99,8 @@ public class EgresoBridge {
                         .append(",\"an\":").append(e.anulado())
                         .append(",\"mo\":").append(Json.texto(e.motivoAnulacion()))
                         .append(",\"ap\":").append(Json.texto(e.anuladoPor()))
-                        .append(",\"pa\":").append(e.puedeAnular()).append('}');
+                        .append(",\"pa\":").append(e.puedeAnular())
+                        .append(",\"inv\":").append(e.compraInventario()).append('}');
             }
             b.append("],\"r\":{\"total\":").append(r.totalCent())
                     .append(",\"caja\":").append(r.cajaCent())
@@ -161,16 +163,20 @@ public class EgresoBridge {
         }
     }
 
-    /** Anula (no borra) un egreso. Pide un motivo. Devuelve {"ok":true}. */
-    public String anularEgreso(String id, String motivo) {
+    /**
+     * Anula (no borra) un egreso. Pide un motivo. revertirInventario "1" = si el egreso viene de una compra de insumos,
+     * también se resta esa compra del stock. Devuelve {"ok":true,"inv":..,"costo":..} (costo = se restauró el costo anterior).
+     */
+    public String anularEgreso(String id, String motivo, String revertirInventario) {
         if (!permitido()) return FALLO;
         try {
             if (motivo == null || motivo.isBlank()) {
                 error("Escribe el motivo de la anulación");
                 return FALLO;
             }
-            egresoDAO.anular(Integer.parseInt(id.trim()), motivo.trim(), web.usuarioActual().id());
-            return "{\"ok\":true}";
+            boolean revertir = "1".equals(revertirInventario);
+            boolean costo = egresoDAO.anular(Integer.parseInt(id.trim()), motivo.trim(), web.usuarioActual().id(), revertir);
+            return "{\"ok\":true,\"inv\":" + revertir + ",\"costo\":" + costo + "}";
         } catch (NumberFormatException e) {
             error("No se pudo identificar el egreso");
             return FALLO;

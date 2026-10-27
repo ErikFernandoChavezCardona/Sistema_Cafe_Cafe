@@ -56,13 +56,14 @@ public class TurnoDAO {
     public List<Movimiento> movimientos(int idTurno) {
         // Las ventas Pendientes o Canceladas no son dinero real: solo cuentan las Completadas
         String sql = "SELECT 'Venta', id_venta, nombre_comanda, metodo_pago, total_cent, COALESCE(cobrada_en, creada_en) AS h, "
-                + "CASE WHEN metodo_pago = 'Efectivo' THEN 1 ELSE 0 END, 0, NULL, NULL "
+                + "CASE WHEN metodo_pago = 'Efectivo' THEN 1 ELSE 0 END, 0, NULL, NULL, 0 "
                 + "FROM ventas WHERE id_turno = ? AND estado = 'Completada' "
                 + "UNION ALL SELECT 'Ingreso', i.id_ingreso, i.concepto, NULL, i.monto_cent, i.creado_en, "
-                + "CASE WHEN i.anulado = 1 THEN 0 ELSE 1 END, i.anulado, i.motivo_anulacion, u.nombre || ' (' || u.usuario || ')' "
+                + "CASE WHEN i.anulado = 1 THEN 0 ELSE 1 END, i.anulado, i.motivo_anulacion, u.nombre || ' (' || u.usuario || ')', 0 "
                 + "FROM ingresos_caja i LEFT JOIN usuarios u ON u.id_usuario = i.id_usuario_anulo WHERE i.id_turno = ? "
                 + "UNION ALL SELECT 'Egreso', e.id_egreso, e.descripcion, e.categoria, e.monto_cent, e.creado_en, "
-                + "CASE WHEN e.anulado = 1 THEN 0 ELSE e.pagado_desde_caja END, e.anulado, e.motivo_anulacion, u.nombre || ' (' || u.usuario || ')' "
+                + "CASE WHEN e.anulado = 1 THEN 0 ELSE e.pagado_desde_caja END, e.anulado, e.motivo_anulacion, u.nombre || ' (' || u.usuario || ')', "
+                + "CASE WHEN e.id_movimiento_inventario IS NOT NULL AND e.anulado = 0 THEN 1 ELSE 0 END "
                 + "FROM egresos e LEFT JOIN usuarios u ON u.id_usuario = e.id_usuario_anulo WHERE e.id_turno = ? "
                 + "ORDER BY h DESC";
         List<Movimiento> lista = new ArrayList<>();
@@ -75,7 +76,7 @@ public class TurnoDAO {
                 while (rs.next()) {
                     lista.add(new Movimiento(rs.getString(1), rs.getInt(2), rs.getString(3), rs.getString(4),
                             rs.getInt(5), rs.getString(6), rs.getInt(7) == 1, rs.getInt(8) == 1,
-                            rs.getString(9), rs.getString(10)));
+                            rs.getString(9), rs.getString(10), rs.getInt(11) == 1));
                 }
             }
         } catch (SQLException e) {

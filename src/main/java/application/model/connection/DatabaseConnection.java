@@ -30,7 +30,8 @@ public final class DatabaseConnection {
             "/application/db/V4__anular_movimientos_caja.sql",
             "/application/db/V5__insumos.sql",
             "/application/db/V6__usuario_movimientos_inventario.sql",
-            "/application/db/V7__egresos.sql"
+            "/application/db/V7__egresos.sql",
+            "/application/db/V8__compra_ligada_a_egreso.sql"
     };
 
     private DatabaseConnection() {

@@ -4,6 +4,7 @@ import application.model.connection.DatabaseConnection;
 import application.model.entity.InsumoAdmin;
 import application.model.entity.MovimientoInsumo;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -141,6 +142,7 @@ public class InventarioDAO {
         try (Connection c = DatabaseConnection.getConnection()) {
             c.setAutoCommit(false);
             try {
+                int idEgreso = 0; // el egreso que crea esta compra (0 = no se pagó con la caja)
                 if (pagadoDesdeCaja) {
                     String egreso = "INSERT INTO egresos (id_turno, categoria, descripcion, monto_cent, pagado_desde_caja, id_usuario) "
                             + "SELECT t.id_turno, 'Insumos', 'Compra de ' || i.nombre, ?, 1, ? FROM turnos_caja t, insumos i "
@@ -152,15 +154,28 @@ public class InventarioDAO {
                         if (ps.executeUpdate() != 1)
                             throw new IllegalStateException("Para pagar con efectivo de la caja primero hay que abrir la caja");
                     }
+                    idEgreso = ultimoId(c);
                 }
-                String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota, id_usuario) "
-                        + "SELECT i.id_insumo, 'Compra', ?, COALESCE(p.nombre, 'Compra'), ? FROM insumos i "
+                // costo_anterior_x1000: el costo que tenía el insumo antes de esta compra (solo si la compra lo actualiza),
+                // para poder devolverlo si después se revierte la compra
+                String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota, id_usuario, costo_anterior_x1000) "
+                        + "SELECT i.id_insumo, 'Compra', ?, COALESCE(p.nombre, 'Compra'), ?, "
+                        + "CASE WHEN ? = 1 THEN i.costo_cent_x1000 ELSE NULL END FROM insumos i "
                         + "LEFT JOIN proveedores p ON p.id_proveedor = i.id_proveedor WHERE i.id_insumo = ? AND i.activo = 1";
                 try (PreparedStatement ps = c.prepareStatement(mov)) {
                     ps.setInt(1, cantidadBase);
                     ps.setInt(2, idUsuario);
-                    ps.setInt(3, idInsumo);
+                    ps.setInt(3, actualizarCosto ? 1 : 0);
+                    ps.setInt(4, idInsumo);
                     if (ps.executeUpdate() != 1) throw new IllegalStateException("El insumo no existe o está desactivado");
+                }
+                int idMovimiento = ultimoId(c);
+                if (idEgreso > 0) { // egreso y compra quedan ligados: así se puede revertir el inventario al anular el egreso
+                    try (PreparedStatement ps = c.prepareStatement("UPDATE egresos SET id_movimiento_inventario = ? WHERE id_egreso = ?")) {
+                        ps.setInt(1, idMovimiento);
+                        ps.setInt(2, idEgreso);
+                        ps.executeUpdate();
+                    }
                 }
                 int costo = (int) Math.round(totalCent * 1000.0 / cantidadBase);
                 String upd = "UPDATE insumos SET stock = stock + ?, "
@@ -180,6 +195,79 @@ public class InventarioDAO {
         } catch (SQLException e) {
             throw new IllegalStateException("No se pudo registrar la compra", e);
         }
+    }
+
+    private static int ultimoId(Connection c) throws SQLException {
+        try (Statement s = c.createStatement(); ResultSet rs = s.executeQuery("SELECT last_insert_rowid()")) {
+            rs.next();
+            return rs.getInt(1);
+        }
+    }
+
+    /**
+     * Revierte en el inventario la compra que originó un egreso de caja: resta lo comprado del stock y deja un
+     * movimiento "Devolucion" en el historial del insumo. Se usa al anular el egreso, DENTRO de la transacción de
+     * EgresoDAO.anular: si algo falla, el egreso tampoco queda anulado.
+     * Si la compra había cambiado el costo y nadie lo ha vuelto a cambiar, el costo anterior se restaura.
+     * Devuelve true si se restauró el costo.
+     */
+    public static boolean revertirCompra(Connection c, int idEgreso, String motivo, int idUsuario) throws SQLException {
+        String leer = "SELECT m.id_insumo, m.cantidad, m.costo_anterior_x1000, e.monto_cent, i.stock, i.costo_cent_x1000, "
+                + "i.unidad_base, i.nombre FROM egresos e "
+                + "JOIN movimientos_inventario m ON m.id_movimiento = e.id_movimiento_inventario "
+                + "JOIN insumos i ON i.id_insumo = m.id_insumo WHERE e.id_egreso = ?";
+        int idInsumo, comprado, monto, stock, costoActual;
+        Integer costoAnterior;
+        String unidad, nombre;
+        try (PreparedStatement ps = c.prepareStatement(leer)) {
+            ps.setInt(1, idEgreso);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new IllegalStateException("Este egreso no viene de una compra de inventario");
+                idInsumo = rs.getInt(1);
+                comprado = rs.getInt(2);
+                int anterior = rs.getInt(3);
+                costoAnterior = rs.wasNull() ? null : anterior;
+                monto = rs.getInt(4);
+                stock = rs.getInt(5);
+                costoActual = rs.getInt(6);
+                unidad = rs.getString(7);
+                nombre = rs.getString(8);
+            }
+        }
+        if (stock - comprado < 0) {
+            throw new IllegalStateException("No se puede revertir en el inventario: de " + nombre + " hay " + legible(stock, unidad)
+                    + " y la compra fue de " + legible(comprado, unidad) + ". Desmarca la casilla o ajusta el stock primero");
+        }
+        String mov = "INSERT INTO movimientos_inventario (id_insumo, tipo, cantidad, nota, id_usuario) VALUES (?, 'Devolucion', ?, ?, ?)";
+        try (PreparedStatement ps = c.prepareStatement(mov)) {
+            ps.setInt(1, idInsumo);
+            ps.setInt(2, -comprado);
+            ps.setString(3, "Compra anulada: " + motivo);
+            ps.setInt(4, idUsuario);
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = c.prepareStatement("UPDATE insumos SET stock = stock - ? WHERE id_insumo = ?")) {
+            ps.setInt(1, comprado);
+            ps.setInt(2, idInsumo);
+            ps.executeUpdate();
+        }
+        // El costo solo se devuelve si sigue siendo el que puso ESTA compra (si hubo otra compra después, no se toca)
+        int costoDeEstaCompra = (int) Math.round(monto * 1000.0 / comprado);
+        if (costoAnterior != null && costoActual == costoDeEstaCompra) {
+            try (PreparedStatement ps = c.prepareStatement("UPDATE insumos SET costo_cent_x1000 = ? WHERE id_insumo = ?")) {
+                ps.setInt(1, costoAnterior);
+                ps.setInt(2, idInsumo);
+                ps.executeUpdate();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /** Cantidad en unidad base para mostrarla en un mensaje: 18000 ml -> "18 L", 50 ud -> "50 ud". */
+    private static String legible(int cantidad, String unidad) {
+        if ("ud".equals(unidad)) return cantidad + " ud";
+        return BigDecimal.valueOf(cantidad, 3).stripTrailingZeros().toPlainString() + ("g".equals(unidad) ? " kg" : " L");
     }
 
     /**

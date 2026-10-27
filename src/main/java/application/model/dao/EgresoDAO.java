@@ -57,18 +57,31 @@ public class EgresoDAO {
      * Anula un egreso (no lo borra). Se puede si está vigente y es de un turno abierto o no pertenece a ningún turno
      * (pagado fuera de la caja). El filtro va dentro del UPDATE para que no se pueda tocar un turno ya cerrado
      * ni anular dos veces lo mismo.
+     * Si revertirInventario es true y el egreso viene de una compra de insumos, esa compra se resta del stock
+     * (InventarioDAO.revertirCompra) en la MISMA transacción: o se anula y se revierte todo, o no pasa nada.
+     * Devuelve true si además se restauró el costo del insumo.
      */
-    public void anular(int idEgreso, String motivo, int idUsuario) {
+    public boolean anular(int idEgreso, String motivo, int idUsuario, boolean revertirInventario) {
         String sql = "UPDATE egresos SET anulado = 1, motivo_anulacion = ?, id_usuario_anulo = ?, "
                 + "anulado_en = datetime('now','localtime') WHERE id_egreso = ? AND anulado = 0 "
                 + "AND (id_turno IS NULL OR id_turno IN (SELECT id_turno FROM turnos_caja WHERE estado = 'Abierta'))";
-        try (Connection c = DatabaseConnection.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, motivo);
-            ps.setInt(2, idUsuario);
-            ps.setInt(3, idEgreso);
-            if (ps.executeUpdate() != 1) {
-                throw new IllegalStateException("No se pudo anular: ya está anulado o es de un turno cerrado");
+        try (Connection c = DatabaseConnection.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement(sql)) {
+                    ps.setString(1, motivo);
+                    ps.setInt(2, idUsuario);
+                    ps.setInt(3, idEgreso);
+                    if (ps.executeUpdate() != 1) {
+                        throw new IllegalStateException("No se pudo anular: ya está anulado o es de un turno cerrado");
+                    }
+                }
+                boolean costoRestaurado = revertirInventario && InventarioDAO.revertirCompra(c, idEgreso, motivo, idUsuario);
+                c.commit();
+                return costoRestaurado;
+            } catch (SQLException | RuntimeException e) {
+                c.rollback();
+                throw e;
             }
         } catch (SQLException e) {
             throw new IllegalStateException("No se pudo anular el egreso", e);
@@ -80,7 +93,8 @@ public class EgresoDAO {
     private static final String SQL_FILAS =
             "SELECT e.id_egreso, e.creado_en, e.descripcion, e.categoria, e.monto_cent, e.pagado_desde_caja, "
                     + "e.id_turno, t.estado, COALESCE(u.nombre || ' (' || u.usuario || ')', ''), e.anulado, "
-                    + "COALESCE(e.motivo_anulacion, ''), COALESCE(ua.nombre || ' (' || ua.usuario || ')', '') "
+                    + "COALESCE(e.motivo_anulacion, ''), COALESCE(ua.nombre || ' (' || ua.usuario || ')', ''), "
+                    + "CASE WHEN e.id_movimiento_inventario IS NOT NULL AND e.anulado = 0 THEN 1 ELSE 0 END "
                     + "FROM egresos e LEFT JOIN turnos_caja t ON t.id_turno = e.id_turno "
                     + "LEFT JOIN usuarios u ON u.id_usuario = e.id_usuario "
                     + "LEFT JOIN usuarios ua ON ua.id_usuario = e.id_usuario_anulo ";
@@ -142,7 +156,7 @@ public class EgresoDAO {
                     Integer idTurno = rs.wasNull() ? null : turno;
                     lista.add(new EgresoFila(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getInt(5),
                             rs.getInt(6) == 1, idTurno, rs.getString(8), rs.getString(9), rs.getInt(10) == 1,
-                            rs.getString(11), rs.getString(12)));
+                            rs.getString(11), rs.getString(12), rs.getInt(13) == 1));
                 }
             }
             return lista;

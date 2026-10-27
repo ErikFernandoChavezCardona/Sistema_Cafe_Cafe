@@ -27,6 +27,9 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
 .esp{display:flex;justify-content:space-between;align-items:baseline;padding-top:14px;margin-top:6px;border-top:2px solid var(--prof)}
 .esp strong{font-size:30px;font-weight:400}
 .nota{color:var(--suave);font-size:12px;margin-top:8px}
+.ck{display:flex;gap:10px;align-items:flex-start;cursor:pointer;line-height:1.3}
+.ck input{width:20px;height:20px;flex:none;accent-color:var(--prof)}
+.ck[hidden],.nota[hidden]{display:none}
 #lista{flex:1;min-width:0;min-height:0}
 #movs{flex:1;overflow-y:auto}
 .mv{display:grid;grid-template-columns:54px 1fr auto 78px;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--linea)}
@@ -165,6 +168,8 @@ select.in{appearance:none}
   <form data-f="anular">
     <label for="an-mo">Motivo</label>
     <input class="in" id="an-mo" placeholder="Ej: Me equivoqué en el monto" autocomplete="off" required>
+    <label class="ck" id="an-inv-fila" hidden><input type="checkbox" id="an-inv"><span>¿Revertir también la compra en el inventario? (resta lo comprado del stock)</span></label>
+    <p class="nota" id="an-inv-nota" hidden style="margin:0">Márcala si la mercancía no llegó o la devolviste. Si no la marcas, el stock se queda como está.</p>
     <p class="nota" style="margin:0">Queda en el historial como anulado y ya no suma ni resta al efectivo.</p>
     <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill peligro">Anular</button></div>
   </form>
@@ -177,7 +182,7 @@ select.in{appearance:none}
 let R={id:1,apertura:'2026-10-24 07:30:00',abrio:'Administrador (axel)',nventas:12,ventas:271000,inicial:50000,efectivo:182000,tarjeta:65000,transferencia:24000,ingresos:10000,egresos:15000,esperado:227000};
 let M=[
  {tipo:'Venta',id:1,an:false,d:'Mesa 5',x:'Efectivo',m:22000,h:'2026-10-24 10:42:00',e:true},
- {tipo:'Egreso',id:1,an:false,d:'Hielo',x:'Insumos',m:15000,h:'2026-10-24 09:15:00',e:true},
+ {tipo:'Egreso',id:1,an:false,inv:true,d:'Hielo',x:'Insumos',m:15000,h:'2026-10-24 09:15:00',e:true},
  {tipo:'Venta',id:2,an:false,d:'Para llevar',x:'Tarjeta',m:11000,h:'2026-10-24 08:50:00',e:false},
  {tipo:'Ingreso',id:1,an:false,d:'Reposición de cambio',x:null,m:10000,h:'2026-10-24 07:45:00',e:true}];
 
@@ -220,6 +225,7 @@ window.onJavaReady=()=>{
 window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar()},400));
 
 let huboError=false,tt;
+window.aviso=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4000)};   // aviso sin error: no cancela el cierre de la ventana
 window.mostrarError=m=>{huboError=true;const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4000)};
 
 // ---- Ventanas emergentes ----
@@ -278,13 +284,20 @@ let aAnular=null;
 function pedirAnular(i){
   aAnular=M[i];
   $('#an-res').textContent=aAnular.tipo+': '+aAnular.d+' · '+money(aAnular.m);
+  // La casilla solo aparece en egresos que salieron de una compra de insumos; siempre arranca sin marcar
+  $('#an-inv-fila').hidden=$('#an-inv-nota').hidden=!aAnular.inv;
+  $('#an-inv').checked=false;
   abrir('m-anular');
 }
 function anularMov(){
   const mo=$('#an-mo').value.trim();
   if(!mo||!aAnular){mostrarError('Escribe el motivo de la anulación');return}
   huboError=false;
-  if(enJava())javaCaja.anularMovimiento(aAnular.tipo,String(aAnular.id),mo);
+  const revertir=!$('#an-inv-fila').hidden&&$('#an-inv').checked;
+  if(enJava()){
+    const r=JSON.parse(javaCaja.anularMovimiento(aAnular.tipo,String(aAnular.id),mo,revertir?'1':'0'));
+    if(r.ok&&r.inv)aviso('Compra revertida en el inventario'+(r.costo?' y costo anterior restaurado':''));
+  }
   else{   // demo
     aAnular.an=true;aAnular.mo=mo;aAnular.ap='Administrador (axel)';aAnular.e=false;
     if(aAnular.tipo==='Egreso'){R.egresos-=aAnular.m;R.esperado+=aAnular.m}else{R.ingresos-=aAnular.m;R.esperado-=aAnular.m}

@@ -124,39 +124,50 @@ public class CajaBridge {
      * Anula un ingreso o egreso del turno abierto. No se borra: queda en el historial con el motivo
      * y quién lo anuló, y deja de sumar o restar al efectivo esperado.
      */
-    public void anularMovimiento(String tipo, String id, String motivo) {
+    public String anularMovimiento(String tipo, String id, String motivo, String revertirInventario) {
         try {
             Turno t = turnoDAO.abierto();
             if (t == null) {
                 error("No hay una caja abierta");
-                return;
+                return "{\"ok\":false}";
             }
             Usuario u = web.usuarioActual();
             if (u == null) {
                 error("Inicia sesión de nuevo para anular");
-                return;
+                return "{\"ok\":false}";
             }
             if (motivo == null || motivo.isBlank()) {
                 error("Escribe el motivo de la anulación");
-                return;
+                return "{\"ok\":false}";
             }
             int idMovimiento = Integer.parseInt(id.trim());
+            boolean revertir = "1".equals(revertirInventario);
             if ("Egreso".equals(tipo)) {
-                egresoDAO.anular(idMovimiento, motivo.trim(), u.id());
-            } else if ("Ingreso".equals(tipo)) {
-                ingresoDAO.anular(idMovimiento, motivo.trim(), u.id());
-            } else {
-                error("Solo se pueden anular ingresos y egresos");
+                boolean costo = egresoDAO.anular(idMovimiento, motivo.trim(), u.id(), revertir);
+                return "{\"ok\":true,\"inv\":" + revertir + ",\"costo\":" + costo + "}";
             }
+            if ("Ingreso".equals(tipo)) {
+                if (revertir) {
+                    error("Un ingreso no tiene inventario que revertir");
+                    return "{\"ok\":false}";
+                }
+                ingresoDAO.anular(idMovimiento, motivo.trim(), u.id());
+                return "{\"ok\":true,\"inv\":false,\"costo\":false}";
+            }
+            error("Solo se pueden anular ingresos y egresos");
+            return "{\"ok\":false}";
         } catch (NumberFormatException e) {
             error("No se pudo identificar el movimiento");
+            return "{\"ok\":false}";
         } catch (IllegalStateException e) {
             e.printStackTrace();
-            // Sin causa = mensaje pensado para el cajero (ya anulado, caja cerrada)
+            // Sin causa = mensaje pensado para el cajero (ya anulado, caja cerrada, stock insuficiente para revertir)
             error(e.getCause() == null ? e.getMessage() : "No se pudo anular el movimiento");
+            return "{\"ok\":false}";
         } catch (Exception e) {
             e.printStackTrace();
             error("No se pudo anular el movimiento");
+            return "{\"ok\":false}";
         }
     }
 
@@ -234,7 +245,8 @@ public class CajaBridge {
                     .append(",\"e\":").append(m.afectaEfectivo())
                     .append(",\"an\":").append(m.anulado())
                     .append(",\"mo\":").append(Json.texto(m.motivoAnulacion()))
-                    .append(",\"ap\":").append(Json.texto(m.anuladoPor())).append('}');
+                    .append(",\"ap\":").append(Json.texto(m.anuladoPor()))
+                    .append(",\"inv\":").append(m.compraInventario()).append('}');
         }
         return b.append(']').toString();
     }
