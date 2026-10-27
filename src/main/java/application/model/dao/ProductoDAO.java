@@ -44,9 +44,9 @@ public class ProductoDAO {
             "SELECT p.id_producto, p.id_categoria, c.nombre, p.nombre, p.precio_cent, p.activo, "
                     + "(SELECT COUNT(*) FROM recetas r WHERE r.id_producto = p.id_producto), "
                     + "(SELECT COUNT(*) FROM recetas r JOIN insumos i ON i.id_insumo = r.id_insumo "
-                    + "  WHERE r.id_producto = p.id_producto AND i.costo_cent_x1000 = 0), "
+                    + "  WHERE r.id_producto = p.id_producto AND (i.costo_cent_x1000 = 0 OR i.activo = 0)), "
                     + "(SELECT CAST(COALESCE(SUM(ROUND(r.cantidad * i.costo_cent_x1000 / 1000.0)), 0) AS INTEGER) "
-                    + "  FROM recetas r JOIN insumos i ON i.id_insumo = r.id_insumo WHERE r.id_producto = p.id_producto) "
+                    + "  FROM recetas r JOIN insumos i ON i.id_insumo = r.id_insumo WHERE r.id_producto = p.id_producto AND i.activo = 1) "
                     + "FROM productos p JOIN categorias c ON c.id_categoria = p.id_categoria ";
 
     private static ProductoAdmin leer(ResultSet rs) throws SQLException {

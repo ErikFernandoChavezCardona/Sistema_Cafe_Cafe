@@ -71,6 +71,7 @@ public class VentaDAO {
                     ps.setInt(4, e.id());
                     if (ps.executeUpdate() != 1) throw new IllegalStateException("La comanda ya no está pendiente");
                 }
+                InsumoDAO.consumir(c, e.id());
                 c.commit();
                 return new ResultadoCobro(e.id(), e.totalCent(), recibido, cambio);
             } catch (SQLException | RuntimeException e) {

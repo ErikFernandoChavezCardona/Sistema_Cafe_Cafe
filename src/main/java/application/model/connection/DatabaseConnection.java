@@ -27,7 +27,8 @@ public final class DatabaseConnection {
             "/application/db/V1__esquema_inicial.sql",
             "/application/db/V2__menu_inicial.sql",
             "/application/db/V3__usuario_cierre_turno.sql",
-            "/application/db/V4__anular_movimientos_caja.sql"
+            "/application/db/V4__anular_movimientos_caja.sql",
+            "/application/db/V5__insumos.sql"
     };
 
     private DatabaseConnection() {

@@ -77,7 +77,7 @@ select.in{appearance:none}
   <a href="pos.html">Venta</a>
   <a href="caja_panel.html">Caja</a>
   <a class="on" href="productos.html">Productos</a>
-  <a class="soon" href="#">Insumos</a>
+  <a href="insumos.html">Insumos</a>
   <a class="soon" href="#">Egresos</a>
   <a class="soon" href="#">Facturas</a>
   <a class="soon" href="#">Reportes</a>
@@ -262,7 +262,7 @@ function pintarLineas(){
   resumen();
 }
 function resumen(){
-  const ok=E.lineas.length>0&&E.lineas.every(l=>l.c>0);
+  const ok=E.lineas.length>0&&E.lineas.every(l=>l.c>0&&INS.some(x=>x.id===l.i));
   let k=0;
   E.lineas.forEach((l,i)=>{const c=costoLinea(l);k+=c;const el=$('#lc'+i);if(el)el.textContent=l.c>0?money(c):'sin costo'});
   const p=aCentavos($('#p-p').value)||0;
@@ -271,7 +271,7 @@ function resumen(){
   $('#s-g').textContent=ok?money(p-k):'—';
   $('#s-m').textContent=ok&&p>0?Math.round((p-k)*100/p)+'%':'—';
   $('#s-n').textContent=ok?'':(E.lineas.length
-    ?'Algún insumo no tiene costo todavía (se llena en la pantalla Insumos). Mientras tanto no se calcula el margen.'
+    ?'Algún insumo está inactivo o no tiene costo. Reactívalo o agrega su costo en Insumos para calcular el margen.'
     :'Sin receta no se puede calcular el costo ni el margen.');
 }
 function agregarLinea(){
