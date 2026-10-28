@@ -3,6 +3,7 @@ package application;
 import application.controller.CajaBridge;
 import application.controller.EgresoBridge;
 import application.controller.FacturaBridge;
+import application.controller.ReporteBridge;
 import application.controller.WebBridge;
 import application.model.connection.DatabaseConnection;
 import javafx.application.Application;
@@ -27,6 +28,7 @@ public class Main extends Application {
     private InsumoBridge insumoBridge;
     private EgresoBridge egresoBridge;
     private FacturaBridge facturaBridge;
+    private ReporteBridge reporteBridge;
 
     @Override
     public void start(Stage stage) {
@@ -42,6 +44,7 @@ public class Main extends Application {
         insumoBridge = new InsumoBridge(engine, bridge);
         egresoBridge = new EgresoBridge(engine, bridge);
         facturaBridge = new FacturaBridge(engine, bridge);
+        reporteBridge = new ReporteBridge(engine, bridge);
 
         // Cada vez que carga una página, se le entregan los puentes: window.javaApp y
         // window.javaCaja
@@ -55,6 +58,7 @@ public class Main extends Application {
                 window.setMember("javaInsumos", insumoBridge);
                 window.setMember("javaEgresos", egresoBridge);
                 window.setMember("javaFacturas", facturaBridge);
+                window.setMember("javaReportes", reporteBridge);
                 engine.executeScript("window.onJavaReady && window.onJavaReady()");
             }
         });

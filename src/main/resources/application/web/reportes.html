@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Reportes</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{display:flex;overflow:hidden}
+nav{width:164px;flex:none;background:var(--prof);color:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:2px}
+.wm{font-family:var(--t);font-size:24px;text-transform:lowercase;padding:0 10px 22px}
+nav a{padding:12px 10px;border-radius:12px;color:rgba(255,255,255,.78);text-decoration:none;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;transition:background-color 150ms ease,transform 160ms var(--ease)}
+nav a.on{background:rgba(255,255,255,.16);color:#fff}
+nav a:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){nav a:not(.on):hover{background:rgba(255,255,255,.08)}}
+main{flex:1;display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px;overflow-y:auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.per{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{padding:8px 18px;border-radius:999px;border:1.5px solid var(--prof);color:var(--prof);font-weight:600;white-space:nowrap;transition:background-color 150ms ease,transform 160ms var(--ease)}
+.chip:active{transform:scale(.97)}
+.chip.on{background:var(--prof);color:#fff}
+#f-rango{display:none;gap:6px;align-items:center}
+.fecha{width:158px;min-width:0;padding-right:44px;text-align:center;font-family:var(--m);cursor:pointer}
+.fw{position:relative;display:inline-flex;align-items:center}
+.cbtn{position:absolute;right:6px;width:34px;height:34px;border-radius:50%;color:var(--prof);display:grid;place-items:center;transition:background-color 150ms ease}
+@media (hover:hover) and (pointer:fine){.cbtn:hover{background:var(--niebla)}}
+#cal{position:fixed;display:none;z-index:15;width:292px;background:#fff;border:1px solid var(--linea);border-radius:16px;padding:14px;box-shadow:0 12px 32px rgba(16,34,47,.18)}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:2px;margin-bottom:8px}
+.ch b{font-family:var(--t);font-weight:400;font-size:17px;color:var(--prof);flex:1;text-align:center}
+.ch button{width:30px;height:30px;border-radius:50%;color:var(--prof);font-size:17px;font-weight:700;transition:background-color 150ms ease}
+.cs,.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cs span{font-size:11px;color:var(--suave);padding:4px 0;text-transform:uppercase}
+.dia{height:34px;border-radius:50%;font:13px var(--m);transition:background-color 120ms ease}
+.dia.en{background:var(--niebla);border-radius:8px}
+.dia.hoy{box-shadow:inset 0 0 0 1.5px var(--azul)}
+.dia.sel{background:var(--prof);color:#fff;font-weight:700;border-radius:50%}
+@media (hover:hover) and (pointer:fine){.dia:not(.sel):hover,.ch button:hover{background:var(--niebla)}}
+.cpie{display:flex;justify-content:space-between;margin-top:8px}
+.cpie button{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--prof);padding:6px 10px;border-radius:999px}
+.sub{color:var(--suave);font-size:12px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--linea)}
+.tab{padding:10px 18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:12px;color:var(--suave);border-bottom:3px solid transparent}
+.tab.on{color:var(--prof);border-color:var(--prof)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{border:1px solid var(--linea);border-radius:14px;padding:14px 18px;display:flex;flex-direction:column;gap:6px}
+.card b.n{font:400 26px/1.2 var(--m)}
+.pos{color:#1f7a4d}.neg{color:#b4492f}
+.grid2{display:grid;grid-template-columns:2fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.bars{display:flex;align-items:flex-end;gap:3px;height:190px;padding-top:8px}
+.bars div{flex:1;background:var(--prof);border-radius:4px 4px 0 0;min-height:2px;position:relative}
+.bars div:hover{background:var(--azul)}
+.bars div:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;white-space:nowrap;z-index:2}
+.ejex{display:flex;gap:3px;color:var(--suave);font-size:10px}.ejex span{flex:1;text-align:center;overflow:hidden}
+.hb{display:grid;grid-template-columns:110px 1fr 90px;gap:10px;align-items:center;padding:5px 0}
+.hb .t{height:12px;border-radius:6px;background:var(--linea);overflow:hidden}.hb .t i{display:block;height:100%;background:var(--prof)}
+.hb .t i.a{background:var(--accion)}.hb .t i.c{background:var(--azul)}
+.tabla{border:1px solid var(--linea);border-radius:14px;overflow:hidden}
+.r{display:grid;gap:12px;align-items:center;padding:6px 20px;border-bottom:1px solid var(--linea);min-height:46px}
+.r:last-child{border-bottom:0}
+.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr}.rl{grid-template-columns:1.1fr 2.4fr .8fr .8fr 1.1fr 1fr 1.1fr}
+.th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:40px}
+.tr{font-weight:700;background:var(--niebla)}
+.b{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:600}.b.ok{background:var(--niebla);color:var(--prof)}.b.w{background:#F6E8C8;color:#6b5314}.b.ab{background:#EFE6CF;color:#5A4410}
+.mini{height:8px;border-radius:4px;background:var(--linea);overflow:hidden;min-width:60px}.mini i{display:block;height:100%;background:var(--prof)}
+.pie{padding:12px 20px;color:var(--suave);font-size:13px}
+.empty{color:var(--suave);text-align:center;margin:28px 0}
+.lst div{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--linea)}
+select.in{appearance:none;width:220px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;z-index:20;display:none}
+#toast.err{background:#b4492f}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a href="insumos.html">Insumos</a>
+  <a href="egresos.html">Egresos</a>
+  <a href="facturas.html">Facturas</a>
+  <a class="on" href="reportes.html">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div><p class="eyebrow">Análisis del negocio</p><h1 class="h">Reportes</h1></div>
+    <button class="pill fill" data-exportar>Exportar a Excel</button>
+  </header>
+
+  <div class="per">
+    <button class="chip" data-p="hoy">Hoy</button><button class="chip" data-p="ayer">Ayer</button>
+    <button class="chip on" data-p="7">Últimos 7 días</button><button class="chip" data-p="30">Últimos 30 días</button>
+    <button class="chip" data-p="rango">Fechas a elegir…</button>
+    <span id="f-rango">
+      <span class="fw"><input class="in fecha" id="f-d" data-cal="f-d" placeholder="AAAA-MM-DD" maxlength="10" aria-label="Desde" autocomplete="off">
+        <button type="button" class="cbtn" data-cal="f-d" aria-label="Elegir fecha inicial"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button></span>
+      <span class="sub">a</span>
+      <span class="fw"><input class="in fecha" id="f-h" data-cal="f-h" placeholder="AAAA-MM-DD" maxlength="10" aria-label="Hasta" autocomplete="off">
+        <button type="button" class="cbtn" data-cal="f-h" aria-label="Elegir fecha final"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button></span>
+    </span>
+  </div>
+  <p class="sub" id="rango-txt"></p>
+
+  <div class="tabs"><button class="tab on" data-tab="res">Resumen</button><button class="tab" data-tab="pro">Productos</button><button class="tab" data-tab="tur">Turnos de caja</button><button class="tab" data-tab="lib">Libro de ventas (ISV)</button></div>
+
+  <section id="t-res">
+    <div class="kpis" style="margin-bottom:14px">
+      <div class="card"><span class="eyebrow">Ventas</span><b class="n" id="k-v"></b><span class="sub" id="k-vs"></span></div>
+      <div class="card"><span class="eyebrow">Egresos</span><b class="n" id="k-e"></b><span class="sub">Compras y gastos del período</span></div>
+      <div class="card"><span class="eyebrow">Utilidad estimada</span><b class="n" id="k-u"></b><span class="sub">Ventas − egresos</span></div>
+      <div class="card"><span class="eyebrow">Ticket promedio</span><b class="n" id="k-t"></b><span class="sub">Por venta cobrada</span></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><span class="eyebrow">Ventas por día</span><div class="bars" id="bars"></div><div class="ejex" id="ejex"></div></div>
+      <div class="card"><span class="eyebrow">Método de pago</span><div id="mp"></div><span class="eyebrow" style="margin-top:12px">Horas con más ventas</span><div id="hr"></div></div>
+    </div>
+    <div class="grid3" style="margin-top:14px">
+      <div class="card"><span class="eyebrow">Más vendidos</span><div class="lst" id="top"></div></div>
+      <div class="card"><span class="eyebrow">Insumos bajo el mínimo</span><div class="lst" id="ins"></div></div>
+      <div class="card"><span class="eyebrow">Control de caja</span><div class="lst" id="ctl"></div></div>
+    </div>
+  </section>
+
+  <section id="t-pro" hidden>
+    <div style="margin-bottom:12px"><select class="in" id="f-cat" aria-label="Categoría"></select></div>
+    <div class="tabla"><div class="r rp th"><span>Producto</span><span>Categoría</span><span>Cant.</span><span>Ventas</span><span>Margen</span><span>Peso en ventas</span></div><div id="l-pro"></div>
+      <div class="pie">Margen = lo vendido menos el costo de los insumos de su receta, con el costo actual de cada insumo. Un producto sin receta, o con algún insumo sin costo, aparece sin margen.</div></div>
+  </section>
+
+  <section id="t-tur" hidden>
+    <div class="tabla"><div class="r rt th"><span>Fecha</span><span>Cajero</span><span>Apertura</span><span>Cierre</span><span>Esperado</span><span>Contado</span><span>Diferencia</span><span>Estado</span></div><div id="l-tur"></div>
+      <div class="pie">Esperado = monto inicial + ventas en efectivo + ingresos − egresos pagados desde caja. La diferencia es lo contado menos lo esperado.</div></div>
+  </section>
+
+  <section id="t-lib" hidden>
+    <div class="tabla"><div class="r rl th"><span>Fecha</span><span>Facturas (del n.º al n.º)</span><span>Emitidas</span><span>Anuladas</span><span>Gravado</span><span>ISV</span><span>Total</span></div><div id="l-lib"></div>
+      <div class="pie">Resumen diario para tu declaración del ISV. Las facturas anuladas no suman. Los números salen del correlativo del CAI. Confirma con tu contador cómo declarar.</div></div>
+  </section>
+</main>
+
+<div id="cal" role="dialog" aria-label="Calendario"></div>
+<div id="toast" role="alert"></div>
+
+<script>
+const $=s=>document.querySelector(s),p2=n=>String(n).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const money=c=>(c<0?'−':'')+'L '+(Math.abs(c)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});   // el dinero viaja en centavos
+const ymd=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+const sumar=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const parseYmd=s=>new Date(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10));
+const FECHA=/^\d{4}-\d{2}-\d{2}$/;
+const enJava=()=>!!window.javaReportes;
+const UN={g:'kg',ml:'L',ud:'ud'},dec=(n,m)=>String(+n.toFixed(m));
+const stk=(s,u)=>u==='ud'?s+' ud':dec(s/1000,2)+' '+UN[u];          // g y ml se muestran en kg y L
+
+let per='7',tab='res',cat='',CACHE={};
+
+// ---- Período ----
+function rango(){
+  const h=new Date();
+  if(per==='hoy')return[ymd(h),ymd(h)];
+  if(per==='ayer'){const a=ymd(sumar(h,-1));return[a,a]}
+  if(per==='7'||per==='30')return[ymd(sumar(h,-(+per-1))),ymd(h)];
+  const d=$('#f-d').value.trim(),e=$('#f-h').value.trim();
+  if(!FECHA.test(d)||!FECHA.test(e))return null;      // todavía las está escribiendo
+  return[d,e];
+}
+
+// ---- Carga ----
+const FN={res:'resumen',pro:'productos',tur:'turnos',lib:'libro'};
+function cargar(){
+  const rg=rango();if(!rg)return;
+  if(rg[0]>rg[1]){mostrarError('La fecha inicial no puede ser mayor que la final');return}
+  if((parseYmd(rg[1])-parseYmd(rg[0]))/864e5>=366){mostrarError('Elige un período de máximo un año');return}
+  const key=rg.join('|');
+  if(CACHE.key!==key){CACHE={key}}                      // otro período: se vuelve a pedir todo
+  const n=Math.round((parseYmd(rg[1])-parseYmd(rg[0]))/864e5)+1;
+  $('#rango-txt').textContent='Del '+rg[0]+' al '+rg[1]+' · '+n+' día'+(n===1?'':'s');
+  if(!CACHE[tab])CACHE[tab]=enJava()?JSON.parse(javaReportes[FN[tab]](rg[0],rg[1])):demo(tab,rg);
+  ({res:pintarRes,pro:pintarPro,tur:pintarTur,lib:pintarLib})[tab](CACHE[tab]);
+}
+
+// ---- Resumen ----
+function pintarRes(R){
+  const D=R.dias,V=D.reduce((s,d)=>s+d.v,0),N=D.reduce((s,d)=>s+d.n,0),E=D.reduce((s,d)=>s+d.eg,0),U=V-E;
+  $('#k-v').textContent=money(V);$('#k-vs').textContent=N+(N===1?' venta cobrada':' ventas cobradas');$('#k-e').textContent=money(E);
+  $('#k-u').textContent=money(U);$('#k-u').className='n '+(U>=0?'pos':'neg');$('#k-t').textContent=money(N?Math.round(V/N):0);
+  const mx=Math.max(1,...D.map(d=>d.v)),cada=D.length>60?7:D.length>14?3:1;
+  $('#bars').innerHTML=D.map(d=>`<div style="height:${d.v*100/mx}%" data-t="${d.f.slice(5)} · ${money(d.v)}"></div>`).join('');
+  $('#ejex').innerHTML=D.map((d,i)=>`<span>${i%cada?'':d.f.slice(8)}</span>`).join('');
+  const ef=D.reduce((s,d)=>s+d.ef,0),tj=D.reduce((s,d)=>s+d.tj,0),tr=D.reduce((s,d)=>s+d.tr,0),T=Math.max(V,1);
+  $('#mp').innerHTML=[['Efectivo',ef,''],['Tarjeta',tj,'a'],['Transferencia',tr,'c']].map(([n,x,c])=>
+    `<div class="hb"><span>${n}</span><span class="t"><i class="${c}" style="width:${x*100/T}%"></i></span><span class="mono">${money(x)}</span></div>`).join('');
+  const hr=x=>(x%12||12),etq=h=>hr(h)+'-'+hr(h+2)+(h+2<=12?' am':' pm'),mh=Math.max(1,...R.horas.map(h=>h.m));
+  $('#hr').innerHTML=R.horas.length?R.horas.map(h=>`<div class="hb"><span>${etq(h.h)}</span><span class="t"><i style="width:${h.m*100/mh}%"></i></span><span class="mono">${Math.round(h.m*100/T)}%</span></div>`).join('')
+    :'<p class="sub">Sin ventas en este período</p>';
+  $('#top').innerHTML=R.top.length?R.top.map(p=>`<div><span>${esc(p.n)}</span><b class="mono">${p.q}</b></div>`).join(''):'<p class="sub">Sin ventas en este período</p>';
+  $('#ins').innerHTML=R.bajos.length?R.bajos.map(i=>`<div><span>${esc(i.n)}</span><span class="neg mono">${stk(i.s,i.u)} / mín. ${stk(i.mi,i.u)}</span></div>`).join(''):'<p class="sub">Todo bien: no hay insumos bajos</p>';
+  const c=R.ctl;
+  $('#ctl').innerHTML=`<div><span>Turnos cerrados</span><b class="mono">${c.cerrados}</b></div><div><span>Turnos con diferencia</span><b class="mono">${c.conDif}</b></div>`
+    +`<div><span>Diferencia acumulada</span><b class="mono ${c.dif<0?'neg':''}">${money(c.dif)}</b></div><div><span>Facturas anuladas</span><b class="mono">${c.anuladas}</b></div>`;
+}
+
+// ---- Productos ----
+function pintarPro(P){
+  const cats=[...new Set(P.map(p=>p.c))].sort();
+  if(cat&&!cats.includes(cat))cat='';
+  $('#f-cat').innerHTML='<option value="">Todas las categorías</option>'+cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');$('#f-cat').value=cat;
+  const L=P.filter(p=>!cat||p.c===cat),T=Math.max(1,L.reduce((s,p)=>s+p.m,0));
+  $('#l-pro').innerHTML=L.length?L.map(p=>{
+    const mg=p.co==null||!p.m?null:Math.round((p.m-p.co)*100/p.m);
+    return `<div class="r rp"><b>${esc(p.n)}</b><span>${esc(p.c)}</span><span class="mono">${p.q}</span><span class="mono">${money(p.m)}</span>
+      <span class="mono ${mg==null?'':mg<55?'neg':'pos'}">${mg==null?'—':mg+' %'}</span><span class="mini"><i style="width:${p.m*100/T}%"></i></span></div>`}).join('')
+    :'<p class="empty">No hay ventas de productos en este período</p>';
+}
+
+// ---- Turnos ----
+const hora=f=>f?f.slice(11,16):'—';
+function pintarTur(L){
+  $('#l-tur').innerHTML=L.length?L.map(t=>{
+    const ab=t.st==='Abierta',dif=t.di||0;
+    return `<div class="r rt"><span>${t.ap.slice(0,10)}</span><span>${esc(t.cj)}</span><span class="mono">${hora(t.ap)}</span><span class="mono">${hora(t.ci)}</span>
+      <span class="mono">${t.es==null?'—':money(t.es)}</span><span class="mono">${t.co==null?'—':money(t.co)}</span>
+      <span class="mono ${dif<0?'neg':dif>0?'pos':''}">${ab||!dif?'—':money(dif)}</span>
+      <span class="b ${ab?'ab':dif?'w':'ok'}">${ab?'Abierta':dif?'Con diferencia':'Cuadrado'}</span></div>`}).join('')
+    :'<p class="empty">No hay turnos de caja en este período</p>';
+}
+
+// ---- Libro de ventas ----
+function pintarLib(L){
+  const S=k=>L.reduce((s,x)=>s+x[k],0);
+  $('#l-lib').innerHTML=L.length?L.map(x=>`<div class="r rl"><span>${x.f}</span><span class="mono">${esc(x.d)}${x.d===x.h?'':' → '+esc(x.h)}</span><span class="mono">${x.n}</span><span class="mono">${x.a||'—'}</span>
+    <span class="mono">${money(x.g)}</span><span class="mono">${money(x.i)}</span><span class="mono">${money(x.t)}</span></div>`).join('')
+    +`<div class="r rl tr"><span>Total</span><span></span><span class="mono">${S('n')}</span><span class="mono">${S('a')}</span><span class="mono">${money(S('g'))}</span><span class="mono">${money(S('i'))}</span><span class="mono">${money(S('t'))}</span></div>`
+    :'<p class="empty">No se emitieron facturas en este período</p>';
+}
+
+// ---- Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java), para diseñar ----
+function demo(t,rg){
+  let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646};
+  const dias=[];for(let d=parseYmd(rg[0]);ymd(d)<=rg[1];d=sumar(d,1)){
+    const n=Math.round(44*(.8+rnd()*.5)),v=n*Math.round(7000+rnd()*4500),ef=Math.round(v*.55),tj=Math.round(v*.25);
+    dias.push({f:ymd(d),n,v,ef,tj,tr:v-ef-tj,eg:Math.round(v*(.22+rnd()*.25))})}
+  if(t==='res')return{dias,horas:[{h:8,m:3000000},{h:10,m:2600000},{h:16,m:2200000},{h:12,m:1500000},{h:14,m:1300000},{h:18,m:900000}],
+    top:[{n:'Latte 12 oz',q:131,m:850000},{n:'Americano 12 oz',q:109,m:600000},{n:'Capuchino 12 oz',q:92,m:600000},{n:'Frappé Oreo',q:70,m:770000},{n:'Soda Italiana',q:61,m:490000}],
+    bajos:[{n:'Leche entera',u:'ml',s:8000,mi:12000},{n:'Café en grano',u:'g',s:1200,mi:3000},{n:'Vasos 12 oz',u:'ud',s:40,mi:150}],
+    ctl:{cerrados:dias.length,conDif:Math.floor(dias.length/4),dif:-2500,anuladas:2}};
+  if(t==='pro')return[['Latte 12 oz','Café Caliente',131,6500,1500],['Frappé Oreo','Frappés',70,11000,3900],['Soda Italiana','Sodas',61,8000,2200],['Cheesecake','Postres',24,9500,null]]
+    .map(p=>({n:p[0],c:p[1],q:p[2],m:p[2]*p[3],co:p[4]==null?null:p[2]*p[4]}));
+  if(t==='tur')return dias.slice().reverse().map((d,i)=>({id:i+1,ap:d.f+' 07:02:00',cj:i%3?'Mahely':'Carlos',ci:i?d.f+' 20:15:00':null,es:i?5000000:null,co:i?5000000-(i%4?0:500):null,di:i?(i%4?0:-500):null,st:i?'Cerrada':'Abierta'}));
+  let c=52001;return dias.map(d=>{const f=c;c+=d.n+1;const n=p=>'000-001-01-'+String(p).padStart(8,'0'),g=Math.round(d.v*10000/11500);
+    return{f:d.f,d:n(f),h:n(c-1),n:d.n,a:1,g,i:d.v-g,t:d.v}}).reverse();
+}
+
+// ---- Calendario del rango de fechas (el WebView de JavaFX no trae el de <input type="date">) ----
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let calCampo=null,calMes=null;
+const fechaValida=id=>FECHA.test($('#'+id).value.trim())?$('#'+id).value.trim():'';
+function abrirCal(id){
+  const base=fechaValida(id)||ymd(new Date());
+  calCampo=id;calMes=new Date(+base.slice(0,4),+base.slice(5,7)-1,1);
+  const cal=$('#cal');pintarCal();cal.style.display='block';
+  const r=$('#'+id).parentElement.getBoundingClientRect();
+  cal.style.top=Math.min(r.bottom+6,window.innerHeight-cal.offsetHeight-8)+'px';
+  cal.style.left=Math.max(8,Math.min(r.left,window.innerWidth-cal.offsetWidth-8))+'px';
+}
+function cerrarCal(){$('#cal').style.display='none';calCampo=null}
+function pintarCal(){
+  const d=fechaValida('f-d'),h=fechaValida('f-h'),hoy=ymd(new Date());
+  const a=calMes.getFullYear(),m=calMes.getMonth(),ini=(new Date(a,m,1).getDay()+6)%7,dias=new Date(a,m+1,0).getDate();
+  let celdas='<span></span>'.repeat(ini);
+  for(let n=1;n<=dias;n++){
+    const f=a+'-'+p2(m+1)+'-'+p2(n);
+    const c='dia'+(f===hoy?' hoy':'')+(d&&h&&f>d&&f<h?' en':'')+(f===d||f===h?' sel':'');
+    celdas+=`<button type="button" class="${c}" data-dia="${f}">${n}</button>`;
+  }
+  $('#cal').innerHTML=`<div class="ch"><button type="button" data-nav="-12" aria-label="Año anterior">«</button><button type="button" data-nav="-1" aria-label="Mes anterior">‹</button>
+    <b>${MESES[m]} ${a}</b><button type="button" data-nav="1" aria-label="Mes siguiente">›</button><button type="button" data-nav="12" aria-label="Año siguiente">»</button></div>
+    <div class="cs"><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span></div>
+    <div class="cg">${celdas}</div>
+    <div class="cpie"><button type="button" data-hoy>Hoy</button><button type="button" data-xcal>Cerrar</button></div>`;
+}
+function elegirDia(f){
+  const d=$('#f-d'),h=$('#f-h');
+  if(calCampo==='f-d'){d.value=f;if(!fechaValida('f-h')||h.value.trim()<f)h.value=f}      // la final nunca queda antes que la inicial
+  else{h.value=f;if(!fechaValida('f-d')||d.value.trim()>f)d.value=f}
+  cerrarCal();cargar();
+}
+$('#cal').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const d=b.dataset;
+  if(d.nav){calMes=new Date(calMes.getFullYear(),calMes.getMonth()+ +d.nav,1);pintarCal()}
+  else if(d.dia)elegirDia(d.dia);
+  else if(d.hoy!==undefined)elegirDia(ymd(new Date()));
+  else if(d.xcal!==undefined)cerrarCal();
+});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-cal]');if(t)abrirCal(t.dataset.cal)});
+document.addEventListener('mousedown',e=>{if(calCampo&&!e.target.closest('#cal,.fw'))cerrarCal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrarCal()});
+
+// ---- Avisos ----
+let tt;
+function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',3500)}
+window.mostrarError=m=>toast(m,true);
+window.aviso=m=>toast(m,false);
+
+window.onJavaReady=()=>{
+  // Solo el administrador ve los reportes del negocio
+  if(!javaReportes.esAdministrador()){javaApp.irA('pos.html');return}
+  cargar();
+};
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar()},400));
+
+// ---- Eventos ----
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const d=b.dataset;
+  if(d.p){
+    per=d.p;document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('on',x===b));
+    $('#f-rango').style.display=per==='rango'?'flex':'none';cerrarCal();
+    if(per==='rango'&&!FECHA.test($('#f-d').value.trim())){const h=new Date();$('#f-d').value=ymd(sumar(h,-6));$('#f-h').value=ymd(h)}   // arranca con los últimos 7 días
+    cargar();
+  }else if(d.tab){
+    tab=d.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+    ['res','pro','tur','lib'].forEach(t=>$('#t-'+t).hidden=t!==tab);cargar();
+  }else if(d.exportar!==undefined){
+    const rg=rango();if(!rg){mostrarError('Escribe las dos fechas (AAAA-MM-DD)');return}
+    if(!enJava()){toast('Modo diseño (sin Java): no se exporta',false);return}
+    javaReportes.exportarExcel(rg[0],rg[1],tab,tab==='pro'?cat:'');
+  }
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='f-cat'){cat=t.value;pintarPro(CACHE.pro)}
+  else if(t.id==='f-d'||t.id==='f-h')cargar();
+});
+document.addEventListener('input',e=>{   // si escribe la fecha a mano, el calendario salta a ese mes
+  if(calCampo&&e.target.id===calCampo&&fechaValida(calCampo)){const f=fechaValida(calCampo);calMes=new Date(+f.slice(0,4),+f.slice(5,7)-1,1);pintarCal()}
+});
+</script>
+</body>
+</html>
