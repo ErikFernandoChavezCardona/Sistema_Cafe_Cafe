@@ -83,16 +83,20 @@ public class VentaBridge {
 
     /**
      * Cobra la venta. metodo: "Efectivo", "Tarjeta" o "Transferencia". recibidoCentavos solo importa en efectivo.
-     * Devuelve {"ok":true,"id":N,"total":..,"recibido":..,"cambio":..} o {"ok":false}.
+     * La factura se emite en el mismo instante: clienteNombre y clienteRtn vacíos = Consumidor final.
+     * Devuelve {"ok":true,"id":N,"total":..,"recibido":..,"cambio":..,"factura":N,"numero":"000-001-01-00000001"} o {"ok":false}.
      */
-    public String cobrar(String idVenta, String nombre, String lineas, String metodo, String recibidoCentavos) {
+    public String cobrar(String idVenta, String nombre, String lineas, String metodo, String recibidoCentavos,
+                         String clienteNombre, String clienteRtn) {
         try {
             Usuario u = web.usuarioActual();
             if (u == null) return sesionVencida();
             int recibido = (recibidoCentavos == null || recibidoCentavos.isBlank()) ? 0 : entero(recibidoCentavos);
-            ResultadoCobro r = dao.cobrar(entero(idVenta), u.id(), nombre, leerLineas(lineas), metodo, recibido);
+            ResultadoCobro r = dao.cobrar(entero(idVenta), u.id(), nombre, leerLineas(lineas), metodo, recibido,
+                    clienteNombre, clienteRtn);
             return "{\"ok\":true,\"id\":" + r.idVenta() + ",\"total\":" + r.totalCent()
-                    + ",\"recibido\":" + r.recibidoCent() + ",\"cambio\":" + r.cambioCent() + "}";
+                    + ",\"recibido\":" + r.recibidoCent() + ",\"cambio\":" + r.cambioCent()
+                    + ",\"factura\":" + r.idFactura() + ",\"numero\":" + Json.texto(r.numeroFactura()) + "}";
         } catch (Exception e) {
             return fallo(e);
         }

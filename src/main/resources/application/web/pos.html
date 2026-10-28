@@ -62,6 +62,14 @@ aside input{text-align:center;font-weight:600}
 .cam b{font-size:28px;font-weight:400}
 .acc{display:flex;gap:10px}.acc .pill{flex:1}
 .ok{text-align:center;align-items:center}
+.caiaviso{padding:10px 16px;border-radius:12px;background:#F6E8C8;color:#6b5314;font-weight:600}
+.caiaviso.bad{background:#F6D5CC;color:#8A2E15}
+.cf{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--linea)}
+.fs{display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid var(--linea)}
+.er{color:#8A2E15;font-size:12px;min-height:14px}
+.mb.tkmb{width:min(430px,94vw);max-height:94vh;overflow-y:auto}
+.tkbox{width:100%;flex:none;display:flex;justify-content:center;overflow-x:auto}
+.mb.ok .acc{width:100%}.mb.ok .fs{width:100%;text-align:left}
 #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,10px);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;
   opacity:0;pointer-events:none;transition:opacity 200ms ease,transform 200ms var(--ease);z-index:60}
 #toast.show{opacity:1;transform:translate(-50%,0)}
@@ -86,7 +94,7 @@ aside input{text-align:center;font-weight:600}
   <a href="productos.html">Productos</a>
   <a href="insumos.html">Insumos</a>
   <a href="egresos.html">Egresos</a>
-  <a class="soon" href="#">Facturas</a>
+  <a href="facturas.html">Facturas</a>
   <a class="soon" href="#">Reportes</a>
 </nav>
 
@@ -95,6 +103,7 @@ aside input{text-align:center;font-weight:600}
     <div><p class="eyebrow">Turno abierto · Caja 1</p><h1 class="h">Punto de venta</h1></div>
     <input class="in" id="q" placeholder="Buscar producto…" aria-label="Buscar producto" autocomplete="off">
   </header>
+  <div class="caiaviso" id="caiAviso" hidden></div>
   <div class="pend" id="pend"></div>
   <div class="pos">
     <section class="cat"><div id="chips"></div><div id="grid"></div></section>
@@ -113,6 +122,7 @@ aside input{text-align:center;font-weight:600}
 <div id="mo" class="mo" hidden></div>
 <div id="toast" role="alert"></div>
 
+<script src="../assets/js/factura_ticket.js"></script>
 <script>
 const ICONOS=['taza','frappe','smoothie','soda','waffle','cocina','nevada','extra'];
 // Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java).
@@ -131,8 +141,9 @@ window.onJavaReady=()=>{
   if(!javaApp.hayTurnoAbierto()){javaApp.irA('caja.html');return}
   cargar(JSON.parse(javaApp.catalogo()));
   pendientes();
+  avisoCai();
 };
-window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp){cargar(DEMO);pendientes()}},400));
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp){cargar(DEMO);pendientes();avisoCai()}},400));
 function chips(){$('#chips').innerHTML=[{id:0,nombre:'Todos'},...C].map(c=>`<button class="chip${c.id===cat?' on':''}" data-c="${c.id}">${esc(c.nombre)}</button>`).join('')}
 function grid(){
  const f=q?P.filter(p=>norm(p.n).includes(q)):P.filter(p=>!cat||p.c===cat);   // al buscar, mira todas las categorías
@@ -180,7 +191,7 @@ function cancelarPend(){   // pide confirmar con un segundo toque, para no cance
 }
 function abrirCobro(){
   if(!total())return;
-  metodo='Efectivo';recC=0;pintarCobro();$('#mo').hidden=false;
+  metodo='Efectivo';recC=0;cliOn=false;cliNom='';cliRtn='';pintarCobro();$('#mo').hidden=false;
 }
 function pintarCobro(){
   const t=total(),ef=metodo==='Efectivo';
@@ -191,6 +202,11 @@ function pintarCobro(){
    ${ef?`<input class="in m" id="rec" inputmode="decimal" autocomplete="off" placeholder="Recibido L 0.00" value="${recC?recC/100:''}">
    <div class="rap"><button class="chip" data-rap="${t}">Exacto</button><button class="chip" data-rap="10000">L 100</button><button class="chip" data-rap="50000">L 500</button></div>
    <div class="cam"><span class="eyebrow">Cambio</span><b class="mono" id="cam"></b></div>`:'<p class="empty" style="margin:6px 0">Se cobra el total exacto.</p>'}
+   ${cliOn?`<div class="fs"><p class="eyebrow">Factura con datos del cliente</p>
+     <input class="in" id="cli-n" maxlength="60" autocomplete="off" placeholder="Nombre del cliente" value="${esc(cliNom)}">
+     <input class="in m" id="cli-r" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(cliRtn)}">
+     <p class="er" id="cli-e"></p><button class="lnk" data-cli="0">Quitar y dejar como Consumidor final</button></div>`
+   :`<div class="cf"><span>Factura a <b>Consumidor final</b></span><button class="lnk" data-cli="1">¿Pide factura con RTN?</button></div>`}
    <div class="acc"><button class="pill" data-volver="1">Volver</button><button class="pill fill" id="ok">Confirmar cobro</button></div></div>`;
   refrescar();
   if(ef)$('#rec').focus();
@@ -198,30 +214,80 @@ function pintarCobro(){
 function refrescar(){   // actualiza cambio y botón sin volver a dibujar (así no se pierde el cursor al escribir)
   const t=total(),ef=metodo==='Efectivo';
   if(ef)$('#cam').textContent=recC>=t?money(recC-t):'—';
-  $('#ok').disabled=ef&&recC<t;
+  $('#ok').disabled=(ef&&recC<t)||!cliOk();
+  if(cliOn)$('#cli-e').textContent=cliRtn&&!rtnOk(cliRtn)?'El RTN debe tener 14 dígitos':'';
 }
 function confirmarCobro(){
   $('#ok').disabled=true;   // evita cobrar dos veces con un doble toque
-  const r=JSON.parse(V().cobrar(String(idVenta),nombre(),lineas(),metodo,String(metodo==='Efectivo'?recC:0)));
+  // Cobra Y factura en el mismo paso: Java consume el siguiente número del CAI y registra la factura vigente
+  const r=JSON.parse(V().cobrar(String(idVenta),nombre(),lineas(),metodo,String(metodo==='Efectivo'?recC:0),cliOn?cliNom.trim():'',cliOn?cliRtn.replace(/[\s-]/g,''):''));
   if(!r.ok){refrescar();return}
-  const ef=metodo==='Efectivo';
   limpiar();
-  $('#mo').innerHTML=`<div class="mb ok" role="dialog" aria-modal="true" aria-label="Venta cobrada">
-   <p class="eyebrow">Venta cobrada</p>
+  mostrarComprobante(r);
+}
+// ---------- Factura emitida al cobrar ----------
+let cliOn=false,cliNom='',cliRtn='',facAct=null,reemOn=false,reNom='',reRtn='',cobroAct=null;
+const F=()=>window.javaFacturas||DEMO_F;   // sin Java (en el navegador) usa una factura de ejemplo
+const rtnOk=v=>/^(\d{14})?$/.test(v.replace(/[\s-]/g,''));
+const cliOk=()=>!cliOn||(cliNom.trim()!==''&&rtnOk(cliRtn));
+function avisoCai(){   // avisa ANTES de cobrar si el CAI no deja facturar o se está acabando
+  let e;try{e=JSON.parse(F().estado())}catch(x){return}
+  const b=$('#caiAviso');let m='';
+  if(e.problema)m=e.problema+'. No se puede cobrar hasta resolverlo.';
+  else if(e.rest<=50||e.dias<=30)m='Atención: quedan '+e.rest+' facturas del CAI y vence en '+e.dias+' días.';
+  b.textContent=m;b.hidden=!m;b.className='caiaviso'+(e.problema?' bad':'');
+}
+function mostrarComprobante(r){
+  cobroAct=r;reemOn=false;reNom='';reRtn='';
+  facAct=JSON.parse(F().ver(String(r.factura)));
+  pintarComprobante();
+  if(facAct.neg&&facAct.neg.auto)imprimirFac();   // si está activada la impresión automática
+}
+function pintarComprobante(){
+  const r=cobroAct,f=facAct,ef=f.pago==='Efectivo';
+  $('#mo').innerHTML=`<div class="mb ok tkmb" role="dialog" aria-modal="true" aria-label="Venta cobrada y facturada">
+   <p class="eyebrow">Venta cobrada · factura emitida</p>
    <strong class="mono" style="font-size:34px;font-weight:400">${money(r.total)}</strong>
-   ${ef?`<p class="mono">Recibido ${money(r.recibido)}</p><div class="cam" style="width:100%"><span class="eyebrow">Cambio</span><b class="mono">${money(r.cambio)}</b></div>`:''}
+   ${ef?`<div class="cam" style="width:100%"><span class="eyebrow">Recibido ${money(r.recibido)} · Cambio</span><b class="mono">${money(r.cambio)}</b></div>`:''}
+   <div class="tkbox">${FacturaTicket.cuerpo(f)}</div>
+   ${reemOn?`<div class="fs"><p class="eyebrow">Factura con datos del cliente</p>
+     <input class="in" id="re-n" maxlength="60" autocomplete="off" placeholder="Nombre del cliente" value="${esc(reNom)}">
+     <input class="in m" id="re-r" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(reRtn)}">
+     <p class="er" id="re-e"></p>
+     <p class="nota" style="font-size:12px;color:var(--suave)">Se anula esta factura y se emite otra con estos datos (consume un número nuevo del CAI).</p>
+     <div class="acc"><button class="pill" id="reno">Volver</button><button class="pill fill" id="reok" disabled>Emitir con estos datos</button></div></div>`
+   :`<div class="acc"><button class="pill" id="imp">Imprimir</button><button class="pill" id="otro">Cliente pide RTN</button></div>`}
    <button class="pill fill" id="nueva">Nueva venta</button></div>`;
-  $('#nueva').focus();
+  if(reemOn)$('#re-n').focus();else $('#nueva').focus({preventScroll:true});
+}
+function imprimirFac(){
+  if(!facAct)return;
+  if(!window.javaFacturas){aviso('Vista de prueba: aquí se mandaría a la impresora');return}
+  const r=JSON.parse(F().imprimir(FacturaTicket.documento(facAct)));
+  if(r.ok)aviso('Enviado a la impresora');
+}
+function reemitirFac(){   // el cliente pidió RTN o datos "en el último segundo": anula la factura y emite otra
+  const rtn=reRtn.replace(/[\s-]/g,'');
+  const r=JSON.parse(F().reemitir(String(facAct.id),reNom.trim(),rtn));
+  if(!r.ok)return;
+  facAct=JSON.parse(F().ver(String(r.id)));reemOn=false;pintarComprobante();
+  aviso('Factura anterior anulada · nueva factura '+facAct.num);
+  if(facAct.neg&&facAct.neg.auto)imprimirFac();
 }
 function cerrarCobro(){$('#mo').hidden=true;$('#mo').innerHTML=''}
 document.addEventListener('input',e=>{
+  if(e.target.id==='cli-n'){cliNom=e.target.value;refrescar();return}
+  if(e.target.id==='cli-r'){cliRtn=e.target.value;refrescar();return}
+  if(e.target.id==='re-n'||e.target.id==='re-r'){
+    if(e.target.id==='re-n')reNom=e.target.value;else reRtn=e.target.value;
+    $('#reok').disabled=!(reNom.trim()&&rtnOk(reRtn));$('#re-e').textContent=reRtn&&!rtnOk(reRtn)?'El RTN debe tener 14 dígitos':'';return}
   if(e.target.id!=='rec')return;
   const v=parseFloat(e.target.value.replace(',','.'));recC=isNaN(v)||v<0?0:Math.round(v*100);refrescar();
 });
 document.addEventListener('keydown',e=>{
   if($('#mo').hidden)return;
   if(e.key==='Escape')cerrarCobro();
-  else if(e.key==='Enter'){const b=$('#ok')||$('#nueva');if(b&&!b.disabled){e.preventDefault();b.click()}}
+  else if(e.key==='Enter'){if(e.target.tagName==='BUTTON'&&$('#nueva'))return;const b=$('#ok')||$('#reok')||$('#nueva');if(b&&!b.disabled){e.preventDefault();b.click()}}
 });
 // Datos de ejemplo en memoria: solo para ver el diseño en el navegador (sin Java)
 const mem={id:0,pend:[]};
@@ -231,14 +297,33 @@ const DEMO_V={
  pendientes:()=>JSON.stringify(mem.pend.map(p=>({id:p.id,n:p.nombre,t:totL(p.l),h:''}))),
  abrirPendiente:id=>{const p=mem.pend.find(x=>x.id==id);return JSON.stringify(p?{id:p.id,nombre:p.nombre,lineas:p.l.map(([i,n])=>({id:i,q:n}))}:{})},
  guardarPendiente:(id,nom,l)=>{const p=mem.pend.find(x=>x.id==id);if(p){p.nombre=nom||'Sin nombre';p.l=parseL(l)}else mem.pend.push({id:++mem.id,nombre:nom||'Sin nombre',l:parseL(l)});return JSON.stringify({ok:true,id:p?p.id:mem.id})},
- cobrar:(id,nom,l,met,rec)=>{const t=totL(parseL(l));if(met==='Efectivo'&&+rec<t){aviso('El monto recibido no alcanza');return '{"ok":false}'}
-   mem.pend=mem.pend.filter(x=>x.id!=id);const r=met==='Efectivo'?+rec:t;return JSON.stringify({ok:true,id:0,total:t,recibido:r,cambio:r-t})},
+ cobrar:(id,nom,l,met,rec,cn,cr)=>{const t=totL(parseL(l));if(met==='Efectivo'&&+rec<t){aviso('El monto recibido no alcanza');return '{"ok":false}'}
+   mem.pend=mem.pend.filter(x=>x.id!=id);const r=met==='Efectivo'?+rec:t;demoFactura(l,t,met,r,cn,cr);return JSON.stringify({ok:true,id:0,total:t,recibido:r,cambio:r-t,factura:demoFac.id,numero:demoFac.num})},
  cancelarPendiente:id=>{mem.pend=mem.pend.filter(x=>x.id!=id);return '{"ok":true}'}
+};
+let demoFac=null,demoN=0;
+function demoFactura(l,t,met,rec,cn,cr){
+  const L=parseL(l).filter(([id])=>prod(id)).map(([id,n])=>({n:prod(id).n,q:n,p:prod(id).p,s:prod(id).p*n}));
+  const isv=t-Math.round(t*10000/11500);demoN++;
+  demoFac={id:demoN,num:'000-001-01-'+String(demoN).padStart(8,'0'),cai:'CAI-DE-EJEMPLO',desde:'000-001-01-00000001',hasta:'000-001-01-00000500',limite:'2027-12-31',
+   rtn:cr||'',cli:cn||'Consumidor final',sub:t-isv,isv,pct:1500,tot:t,user:'Demo',fecha:new Date().toISOString().replace('T',' ').slice(0,19),an:false,pago:met,rec,cam:rec-t,l:L,
+   neg:{n:'Café Café',rtn:'00000000000000',dir:'',tel:'',mail:'',auto:false}};
+}
+const DEMO_F={
+ estado:()=>JSON.stringify({problema:'',rest:400,dias:200}),
+ ver:()=>JSON.stringify(demoFac),
+ reemitir:(id,n,r)=>{const f=demoFac;demoFactura(f.l.map(x=>x.n&&P.find(p=>p.n===x.n)?P.find(p=>p.n===x.n).id+':'+x.q:'').filter(Boolean).join(','),f.tot,f.pago,f.rec,n,r);return JSON.stringify({ok:true,id:demoFac.id})},
+ imprimir:()=>'{"ok":true}'
 };
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.met){metodo=b.dataset.met;recC=0;pintarCobro()}
   else if(b.dataset.rap!==undefined){recC=+b.dataset.rap;pintarCobro()}
+  else if(b.dataset.cli!==undefined){cliOn=b.dataset.cli==='1';pintarCobro();if(cliOn)$('#cli-n').focus()}
+  else if(b.id==='imp')imprimirFac()
+  else if(b.id==='otro'){reemOn=true;reNom='';reRtn='';pintarComprobante()}
+  else if(b.id==='reno'){reemOn=false;pintarComprobante()}
+  else if(b.id==='reok')reemitirFac()
   else if(b.dataset.volver||b.id==='nueva')cerrarCobro()
   else if(b.id==='ok')confirmarCobro()
   else if(b.dataset.c!==undefined){cat=+b.dataset.c;chips();grid()}

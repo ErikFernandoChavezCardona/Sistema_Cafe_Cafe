@@ -41,11 +41,13 @@ public class VentaDAO {
     }
 
     /**
-     * Cobra la venta: la guarda y la marca Completada en la misma transacción.
+     * Cobra la venta: la guarda, la marca Completada Y EMITE SU FACTURA en la misma transacción
+     * (consume el siguiente número del CAI). Si algo falla, no se cobra nada ni se gasta un número.
      * Efectivo: el recibido debe alcanzar y se calcula el cambio. Tarjeta o Transferencia: se cobra el total exacto.
+     * clienteNombre / clienteRtn vacíos = Consumidor final; si el cliente pide factura con datos, llegan aquí.
      */
     public ResultadoCobro cobrar(int idVenta, int idUsuario, String nombre, List<LineaVenta> lineas,
-                                 String metodo, int recibidoCent) {
+                                 String metodo, int recibidoCent, String clienteNombre, String clienteRtn) {
         try (Connection c = DatabaseConnection.getConnection()) {
             c.setAutoCommit(false);
             try {
@@ -72,8 +74,10 @@ public class VentaDAO {
                     if (ps.executeUpdate() != 1) throw new IllegalStateException("La comanda ya no está pendiente");
                 }
                 InsumoDAO.consumir(c, e.id());
+                int idFactura = FacturaDAO.emitir(c, e.id(), idUsuario, clienteNombre, clienteRtn);
+                String numeroFactura = numeroDe(c, idFactura);
                 c.commit();
-                return new ResultadoCobro(e.id(), e.totalCent(), recibido, cambio);
+                return new ResultadoCobro(e.id(), e.totalCent(), recibido, cambio, idFactura, numeroFactura);
             } catch (SQLException | RuntimeException e) {
                 c.rollback();
                 throw e;
@@ -207,6 +211,16 @@ public class VentaDAO {
             ps.executeUpdate();
         }
         return new Escrita(id, total);
+    }
+
+    private String numeroDe(Connection c, int idFactura) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("SELECT numero FROM facturas_venta WHERE id_factura_venta = ?")) {
+            ps.setInt(1, idFactura);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getString(1);
+            }
+        }
     }
 
     private int precioDe(Connection c, int idProducto) throws SQLException {

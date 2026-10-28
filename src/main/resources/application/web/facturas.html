@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Facturas</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<style>
+body{display:flex;overflow:hidden}
+nav{width:164px;flex:none;background:var(--prof);color:#fff;padding:22px 14px;display:flex;flex-direction:column;gap:2px}
+.wm{font-family:var(--t);font-size:24px;text-transform:lowercase;padding:0 10px 22px}
+nav a{padding:12px 10px;border-radius:12px;color:rgba(255,255,255,.78);text-decoration:none;font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;transition:background-color 150ms ease,transform 160ms var(--ease)}
+nav a.on{background:rgba(255,255,255,.16);color:#fff}
+nav a:active{transform:scale(.97)}
+nav a.soon{opacity:.5;pointer-events:none}
+@media (hover:hover) and (pointer:fine){nav a:not(.on):not(.soon):hover{background:rgba(255,255,255,.08)}}
+main{flex:1;display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px;overflow-y:auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.cai{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 18px;border-radius:14px;background:var(--niebla)}
+.cai.warn{background:#F6E8C8}.cai.bad{background:#F6D5CC}
+.cai .barra{width:220px;background:rgba(255,255,255,.7)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--linea)}
+.tab{padding:10px 18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:12px;color:var(--suave);border-bottom:3px solid transparent}
+.tab.on{color:var(--prof);border-color:var(--prof)}
+.filtros{display:flex;gap:8px;flex-wrap:wrap}.filtros .in{width:auto;min-width:150px}.filtros #f-q{width:320px}
+select.in{appearance:none}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{border:1px solid var(--linea);border-radius:14px;padding:14px 18px;display:flex;flex-direction:column;gap:4px}
+.card b.n{font:400 24px/1.2 var(--m)}
+.barra{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--linea)}.barra span{background:var(--prof)}
+.tabla{border:1px solid var(--linea);border-radius:14px;overflow:hidden;flex:none}
+.r{display:grid;gap:12px;align-items:center;padding:6px 20px;border-bottom:1px solid var(--linea);min-height:54px}
+.rf{grid-template-columns:1.7fr 1.2fr 1.6fr .6fr 1fr .9fr 3fr}.rc{grid-template-columns:1.8fr 1.4fr 1.1fr 2fr 1.2fr}
+.th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:42px}
+.r.off{opacity:.6}.tach{text-decoration:line-through}
+.b{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:600}
+.b.ok{background:var(--niebla);color:var(--prof)}.b.an{background:#F6D5CC;color:#8A2E15}
+.ab{min-height:36px;padding:0 14px;border-radius:999px;border:1.5px solid var(--prof);color:var(--prof);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-right:6px;white-space:nowrap}
+.ab.gris{border-color:var(--linea);color:var(--suave)}
+.nota{color:var(--suave);font-size:12px}.pie{padding:12px 20px;color:var(--suave);font-size:13px}.empty{color:var(--suave);text-align:center;margin:36px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fondo{position:fixed;inset:0;background:rgba(16,34,47,.45);display:none;place-items:center;z-index:10}.fondo.on{display:grid}
+.modal{width:min(560px,92vw);max-height:92vh;overflow-y:auto;background:var(--crema);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:12px}
+.modal label.t{display:block;font-size:12px;color:var(--suave);margin:0 0 4px 8px}
+.btns{display:flex;gap:10px;margin-top:6px}.btns .pill{flex:1}
+.in.m{font-family:var(--m)}
+.lin{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--linea)}
+.tot{display:flex;justify-content:space-between;padding:3px 0}.tot.g{border-top:2px solid var(--prof);margin-top:6px;padding-top:8px;font-size:18px}
+.tkbox{flex:none;display:flex;justify-content:center;overflow-x:auto}
+.chk{display:flex;gap:10px;align-items:center;padding:6px 8px;cursor:pointer}.chk input{width:18px;height:18px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;z-index:20;display:none}
+#toast.err{background:#b4492f}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a href="insumos.html">Insumos</a>
+  <a href="egresos.html">Egresos</a>
+  <a class="on" href="facturas.html">Facturas</a>
+  <a class="soon" href="#">Reportes</a>
+</nav>
+<main>
+  <header>
+    <div><p class="eyebrow">Facturación</p><h1 class="h">Facturas</h1></div>
+    <div><button class="pill fill" id="b-acc" data-acc></button></div>
+  </header>
+  <div class="cai" id="cai"></div>
+  <div class="tabs"><button class="tab on" data-tab="ven">Emitidas a clientes</button><button class="tab" data-tab="com">Compras a proveedores</button><button class="tab" data-tab="cfg">Configuración del CAI</button></div>
+
+  <section id="t-ven">
+    <p class="nota" style="margin-bottom:10px">Cada venta se factura sola en el momento de cobrar. Aquí puedes verlas, reimprimirlas, cambiarles los datos del cliente o anularlas.</p>
+    <div class="filtros">
+      <select class="in" id="f-est"><option value="">Vigentes y anuladas</option><option value="V">Solo vigentes</option><option value="A">Solo anuladas</option></select>
+      <input class="in" id="f-q" placeholder="Buscar número, cliente o RTN…" autocomplete="off">
+    </div>
+    <div class="kpis" style="margin:14px 0">
+      <div class="card"><span class="eyebrow">Facturado hoy</span><b class="n" id="k-t"></b></div>
+      <div class="card"><span class="eyebrow">ISV incluido hoy</span><b class="n" id="k-i"></b></div>
+      <div class="card"><span class="eyebrow">Facturas de hoy</span><b class="n" id="k-n"></b></div>
+      <div class="card"><span class="eyebrow">Ventas sin factura</span><b class="n" id="k-p"></b></div>
+    </div>
+    <div class="tabla"><div class="r rf th"><span>Número</span><span>Fecha</span><span>Cliente</span><span>Venta</span><span>Total</span><span>ISV</span><span>Acción</span></div><div id="l-ven"></div><div class="pie" id="p-ven"></div></div>
+  </section>
+
+  <section id="t-com" hidden>
+    <div class="tabla"><div class="r rc th"><span>Proveedor</span><span>N.º de factura</span><span>Fecha</span><span>Nota</span><span>Total</span></div><div id="l-com"></div><div class="pie">Aquí queda el respaldo de lo que compras. Una misma factura de un proveedor no se puede registrar dos veces.</div></div>
+  </section>
+
+  <section id="t-cfg" hidden>
+    <div class="grid2">
+      <div class="card" style="gap:10px"><span class="eyebrow">Autorización del SAR</span>
+        <div><label class="t nota">CAI</label><input class="in m" id="c-cai"></div>
+        <div class="dos"><div><label class="t nota">Rango desde (n.º)</label><input class="in m" id="c-d" inputmode="numeric"></div><div><label class="t nota">Rango hasta (n.º)</label><input class="in m" id="c-h" inputmode="numeric"></div></div>
+        <div class="dos"><div><label class="t nota">Fecha límite de emisión</label><input class="in m" id="c-l" placeholder="AAAA-MM-DD"></div><div><label class="t nota">Siguiente número</label><input class="in m" id="c-s" inputmode="numeric"></div></div>
+        <div><label class="t nota">Prefijo del número (establecimiento-punto-tipo)</label><input class="in m" id="c-p" placeholder="000-001-01"></div>
+        <p class="nota">Al recibir un CAI nuevo: escribe el CAI, el rango (solo la parte final del número, sin el prefijo), la fecha límite y el primer número del rango en "Siguiente número". Mientras el sistema factura, ese número sube solo; no lo cambies a mano durante el día.</p>
+      </div>
+      <div class="card" style="gap:10px"><span class="eyebrow">Datos del negocio en la factura</span>
+        <div><label class="t nota">Nombre (razón social)</label><input class="in" id="c-n"></div>
+        <div class="dos"><div><label class="t nota">RTN del negocio</label><input class="in m" id="c-r" inputmode="numeric" maxlength="14"></div><div><label class="t nota">Teléfono</label><input class="in" id="c-t"></div></div>
+        <div><label class="t nota">Dirección</label><input class="in" id="c-di"></div>
+        <div class="dos"><div><label class="t nota">Correo</label><input class="in" id="c-e"></div><div><label class="t nota">ISV (%)</label><input class="in m" id="c-i" inputmode="decimal"></div></div>
+        <label class="chk"><input type="checkbox" id="c-a"><span>Imprimir la factura automáticamente al cobrar</span></label>
+        <p class="nota">Los precios del menú ya incluyen el ISV: la factura solo lo desglosa, así el total no cambia. Confirma estos datos con tu contador.</p>
+        <button class="pill fill" data-guardar-cfg>Guardar configuración</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="fondo" id="m-emi"><div class="modal"><h2 class="h" style="font-size:22px">Facturar una venta sin factura</h2>
+  <p class="nota">Son ventas cobradas antes de que la facturación fuera automática, o ventas cuya factura se anuló.</p>
+  <div><label class="t" for="e-v">Venta cobrada sin factura</label><select class="in" id="e-v"></select></div>
+  <div id="e-det" class="card" style="gap:0"></div>
+  <div class="dos"><div><label class="t" for="e-n">Cliente</label><input class="in" id="e-n" value="Consumidor final" maxlength="60"></div><div><label class="t" for="e-r">RTN (opcional)</label><input class="in m" id="e-r" inputmode="numeric" maxlength="17" placeholder="14 dígitos"></div></div>
+  <p class="nota" id="e-num"></p>
+  <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-emitir>Emitir factura</button></div>
+</div></div>
+
+<div class="fondo" id="m-ver"><div class="modal"><div class="tkbox" id="v-fac"></div>
+  <div class="btns"><button class="pill" data-cerrar>Cerrar</button><button class="pill fill" data-imprimir>Imprimir</button></div></div></div>
+
+<div class="fondo" id="m-cam"><div class="modal"><h2 class="h" style="font-size:22px">Cambiar datos del cliente</h2><p class="nota" id="cm-res"></p>
+  <div class="dos"><div><label class="t" for="cm-n">Cliente</label><input class="in" id="cm-n" maxlength="60"></div><div><label class="t" for="cm-r">RTN (opcional)</label><input class="in m" id="cm-r" inputmode="numeric" maxlength="17" placeholder="14 dígitos"></div></div>
+  <p class="nota">Una factura emitida no se edita: se anula y se emite otra con estos datos. La nueva consume el siguiente número del CAI y la anulada queda en el historial.</p>
+  <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-cambiar>Anular y emitir de nuevo</button></div></div></div>
+
+<div class="fondo" id="m-anu"><div class="modal"><h2 class="h" style="font-size:22px">Anular factura</h2><p class="nota" id="a-res"></p>
+  <div><label class="t" for="a-mo">Motivo (obligatorio)</label><input class="in" id="a-mo" maxlength="120" placeholder="Ej: Se facturó por error"></div>
+  <p class="nota">No se borra: queda en el historial como anulada y su número no se reutiliza. La venta sigue cobrada, pero queda sin factura (podrás emitirle otra desde "Facturar venta sin factura").</p>
+  <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-anular>Anular factura</button></div></div></div>
+
+<div class="fondo" id="m-com"><div class="modal"><h2 class="h" style="font-size:22px">Registrar factura de compra</h2>
+  <div class="dos"><div><label class="t" for="k-pv">Proveedor</label><select class="in" id="k-pv"></select></div><div><label class="t" for="k-nu">N.º de factura</label><input class="in m" id="k-nu" maxlength="25"></div></div>
+  <div class="dos"><div><label class="t" for="k-fe">Fecha</label><input class="in m" id="k-fe" placeholder="AAAA-MM-DD"></div><div><label class="t" for="k-to">Total (L)</label><input class="in m" id="k-to" inputmode="decimal" placeholder="0.00"></div></div>
+  <div><label class="t" for="k-no">Nota (opcional)</label><input class="in" id="k-no" maxlength="80"></div>
+  <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-guardar-com>Guardar</button></div></div></div>
+
+<div id="toast" role="alert"></div>
+<script src="../assets/js/factura_ticket.js"></script>
+<script>
+const $=s=>document.querySelector(s),p2=n=>String(n).padStart(2,'0');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const money=c=>'L '+(c/100).toLocaleString('en-US',{minimumFractionDigits:2});
+const J=s=>JSON.parse(s),B=()=>window.javaFacturas;
+let E={},tab='ven',SIN=[],verFac=null,aAnular=null,aCambiar=null;
+
+// Java llama a onJavaReady cuando el puente está listo. Solo el administrador entra aquí.
+window.onJavaReady=()=>{
+  if(!B().esAdministrador()){javaApp.irA('pos.html');return}
+  recargar();pintarCom();pintarCfg();pintarAcc();
+};
+window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)toast('Abre esta pantalla desde la aplicación: necesita Java',true)},400));
+window.mostrarError=m=>toast(m,true);
+
+const dias=()=>E.dias||0;
+function pintarCai(){
+  const bad=!!E.problema,warn=!bad&&(E.rest<=50||E.dias<=30),tot=Math.max(E.hasta-E.desde+1,1),usado=Math.max(0,Math.min(100,(E.sig-E.desde)*100/tot));
+  $('#cai').className='cai '+(bad?'bad':warn?'warn':'');
+  $('#cai').innerHTML=bad?`<div><b>${esc(E.problema)}</b><br><span class="nota">Mientras no se resuelva, el punto de venta no puede cobrar.</span></div>`
+   :`<div><b>CAI vigente</b><br><span class="nota">Quedan <b>${E.rest}</b> facturas del rango · vence en <b>${dias()}</b> días (${esc(E.limite)}) · siguiente: <span class="mono">${esc(E.numSig)}</span></span></div><div class="barra" title="Rango usado"><span style="width:${usado}%"></span></div>`;
+  $('#b-acc').disabled=tab==='ven'&&bad;
+}
+function pintarAcc(){const b=$('#b-acc');b.hidden=tab==='cfg';b.textContent=tab==='ven'?'Facturar venta sin factura':'Registrar factura de compra'}
+function recargar(){E=J(B().estado());pintarCai();pintarVen()}
+
+function pintarVen(){
+  const fs=J(B().listar($('#f-est').value,$('#f-q').value.trim()));
+  $('#k-t').textContent=money(E.hoyTotal||0);$('#k-i').textContent=money(E.hoyIsv||0);$('#k-n').textContent=E.hoyN||0;$('#k-p').textContent=E.sin||0;
+  $('#l-ven').innerHTML=fs.length?fs.map(f=>`<div class="r rf${f.an?' off':''}"><span class="mono${f.an?' tach':''}">${esc(f.num)}</span><span>${esc(f.fecha.slice(0,16))}</span>
+    <span>${esc(f.cli)}${f.rtn?`<br><span class="nota">RTN ${esc(f.rtn)}</span>`:''}</span><span>#${f.venta}</span><span class="mono${f.an?' tach':''}">${money(f.tot)}</span><span class="mono">${money(f.isv)}</span>
+    <span>${f.an?`<button class="ab" data-ver="${f.id}">Ver</button><span class="b an" title="${esc(f.mo)}">Anulada</span>`:`<button class="ab" data-ver="${f.id}">Ver</button><button class="ab" data-cam="${f.id}">Datos</button><button class="ab gris" data-anu="${f.id}">Anular</button>`}</span></div>`).join('')
+   :'<p class="empty">No hay facturas con estos filtros</p>';
+  $('#p-ven').textContent=fs.length+' facturas. Los precios incluyen ISV ('+(E.isv/100)+' %).';
+}
+function pintarCom(){
+  const cs=J(B().compras());
+  $('#l-com').innerHTML=cs.length?cs.map(c=>`<div class="r rc"><b>${esc(c.pv)}</b><span class="mono">${esc(c.nu)}</span><span>${esc(c.fe)}</span><span class="nota">${esc(c.no||'—')}</span><span class="mono">${money(c.to)}</span></div>`).join(''):'<p class="empty">Todavía no hay facturas de compra</p>';
+}
+function pintarCfg(){
+  $('#c-cai').value=E.cai||'';$('#c-d').value=E.desde||'';$('#c-h').value=E.hasta||'';$('#c-l').value=E.limite||'';$('#c-s').value=E.sig||'';$('#c-p').value=E.pref||'';
+  $('#c-n').value=E.neg||'';$('#c-r').value=E.rtn||'';$('#c-t').value=E.tel||'';$('#c-di').value=E.dir||'';$('#c-e').value=E.mail||'';$('#c-i').value=(E.isv||0)/100;$('#c-a').checked=!!E.auto;
+}
+
+let tt;function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4000)}
+const abrir=id=>$('#'+id).classList.add('on'),cerrar=()=>document.querySelectorAll('.fondo.on').forEach(f=>f.classList.remove('on'));
+const rtnLimpio=v=>v.replace(/[\s-]/g,''),rtnOk=v=>/^(\d{14})?$/.test(rtnLimpio(v));
+
+// ---- Facturar una venta que quedó sin factura
+function abrirEmitir(){
+  SIN=J(B().sinFactura());
+  if(!SIN.length){toast('No hay ventas cobradas sin factura',true);return}
+  $('#e-v').innerHTML=SIN.map(v=>`<option value="${v.id}">Venta #${v.id} · ${esc(v.com)} · ${money(v.tot)} · ${esc(v.pago)}</option>`).join('');
+  $('#e-n').value='Consumidor final';$('#e-r').value='';detalleVenta();abrir('m-emi');
+}
+function detalleVenta(){
+  const v=SIN.find(x=>x.id==$('#e-v').value);if(!v)return;
+  const t=v.tot,sub=Math.round(t*10000/(10000+E.isv)),isv=t-sub;
+  $('#e-det').innerHTML=v.l.map(x=>`<div class="lin"><span>${x.q} × ${esc(x.n)}</span><span class="mono">${money(x.s)}</span></div>`).join('')
+   +`<div class="tot"><span class="nota">Subtotal</span><span class="mono">${money(sub)}</span></div><div class="tot"><span class="nota">ISV ${E.isv/100} %</span><span class="mono">${money(isv)}</span></div><div class="tot g"><b>Total</b><b class="mono">${money(t)}</b></div>`;
+  $('#e-num').textContent='Se emitirá la factura n.º '+E.numSig+' (queda ligada a la venta #'+v.id+').';
+}
+function emitir(){
+  const v=SIN.find(x=>x.id==$('#e-v').value),nom=$('#e-n').value.trim(),rtn=rtnLimpio($('#e-r').value);
+  if(!v)return;
+  if(!rtnOk(rtn)){toast('El RTN debe tener 14 dígitos',true);return}
+  if(!nom){toast('Escribe el nombre del cliente',true);return}
+  const r=J(B().emitir(String(v.id),nom,rtn));if(!r.ok)return;
+  cerrar();recargar();verFactura(r.id);toast('Factura emitida');
+}
+
+// ---- Ver / imprimir
+function verFactura(id){
+  const f=J(B().ver(String(id)));if(!f.id)return;
+  verFac=f;$('#v-fac').innerHTML=FacturaTicket.cuerpo(f);abrir('m-ver');
+}
+function imprimir(){
+  if(!verFac)return;
+  const r=J(B().imprimir(FacturaTicket.documento(verFac)));if(r.ok)toast('Enviado a la impresora');
+}
+
+// ---- Cambiar datos del cliente (anula y emite otra)
+function pedirCambiar(id){
+  const f=J(B().ver(String(id)));if(!f.id)return;aCambiar=f;
+  $('#cm-res').textContent='Factura '+f.num+' · '+f.cli+' · '+money(f.tot);
+  $('#cm-n').value=f.rtn?f.cli:'';$('#cm-r').value=f.rtn||'';abrir('m-cam');
+}
+function cambiar(){
+  const nom=$('#cm-n').value.trim(),rtn=rtnLimpio($('#cm-r').value);
+  if(!nom){toast('Escribe el nombre del cliente',true);return}
+  if(!rtnOk(rtn)){toast('El RTN debe tener 14 dígitos',true);return}
+  const r=J(B().reemitir(String(aCambiar.id),nom,rtn));if(!r.ok)return;
+  cerrar();recargar();verFactura(r.id);toast('Factura anterior anulada · nueva factura emitida');
+}
+
+// ---- Anular
+function pedirAnular(id){
+  const f=J(B().ver(String(id)));if(!f.id)return;aAnular=f;
+  $('#a-res').textContent='Factura '+f.num+' · '+f.cli+' · '+money(f.tot);$('#a-mo').value='';abrir('m-anu');
+}
+function anular(){
+  const mo=$('#a-mo').value.trim();if(!mo){toast('Escribe el motivo de la anulación',true);return}
+  const r=J(B().anular(String(aAnular.id),mo));if(!r.ok)return;
+  cerrar();recargar();toast('Factura anulada');
+}
+
+// ---- Compras a proveedores
+function abrirCompra(){
+  const ps=J(B().proveedores());
+  if(!ps.length){toast('Primero registra un proveedor en Insumos',true);return}
+  $('#k-pv').innerHTML=ps.map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join('');
+  const d=new Date();$('#k-fe').value=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());$('#k-nu').value=$('#k-to').value=$('#k-no').value='';abrir('m-com');
+}
+function guardarCompra(){
+  const nu=$('#k-nu').value.trim(),fe=$('#k-fe').value.trim(),to=Math.round(parseFloat($('#k-to').value.replace(',','.'))*100);
+  if(!nu||!/^\d{4}-\d{2}-\d{2}$/.test(fe)||!(to>0)){toast('Completa número, fecha (AAAA-MM-DD) y total',true);return}
+  const r=J(B().registrarCompra($('#k-pv').value,nu,fe,String(to),$('#k-no').value.trim()));if(!r.ok)return;
+  cerrar();pintarCom();toast('Factura de compra registrada');
+}
+
+// ---- Configuración del CAI y del negocio
+function guardarCfg(){
+  const r=J(B().guardarConfig($('#c-cai').value,$('#c-d').value,$('#c-h').value,$('#c-l').value,$('#c-s').value,$('#c-p').value,$('#c-n').value,$('#c-r').value,$('#c-di').value,$('#c-t').value,$('#c-e').value,$('#c-i').value||'0',$('#c-a').checked?'1':'0'));
+  if(!r.ok)return;
+  recargar();pintarCfg();toast('Configuración guardada');
+}
+function irTab(t){
+  tab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  ['ven','com','cfg'].forEach(x=>$('#t-'+x).hidden=x!==t);pintarAcc();pintarCai();
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(d.tab)irTab(d.tab);
+  else if(d.acc!==undefined){if(tab==='ven')abrirEmitir();else abrirCompra()}
+  else if(d.ver)verFactura(d.ver);else if(d.cam)pedirCambiar(d.cam);else if(d.anu)pedirAnular(d.anu);
+  else if(d.emitir!==undefined)emitir();else if(d.cambiar!==undefined)cambiar();else if(d.anular!==undefined)anular();
+  else if(d.guardarCom!==undefined)guardarCompra();else if(d.guardarCfg!==undefined)guardarCfg();
+  else if(d.imprimir!==undefined)imprimir();else if(d.cerrar!==undefined)cerrar();
+});
+document.addEventListener('change',e=>{if(e.target.id==='e-v')detalleVenta();if(e.target.id==='f-est')pintarVen()});
+document.addEventListener('input',e=>{if(e.target.id==='f-q')pintarVen()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar()});
+</script>
+</body>
+</html>
