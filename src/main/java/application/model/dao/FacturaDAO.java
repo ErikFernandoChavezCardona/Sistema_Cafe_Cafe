@@ -1,6 +1,7 @@
 package application.model.dao;
 
 import application.model.connection.DatabaseConnection;
+import application.model.entity.AutorizacionCai;
 import application.model.entity.ConfigFactura;
 import application.model.entity.Factura;
 import application.model.entity.FacturaCompra;
@@ -354,6 +355,7 @@ public class FacturaDAO {
                     ps.setString(2, e.getValue());
                     ps.executeUpdate();
                 }
+                sincronizarAutorizacion(c, n);
                 c.commit();
             } catch (SQLException | RuntimeException e) {
                 c.rollback();
@@ -361,6 +363,147 @@ public class FacturaDAO {
             }
         } catch (SQLException e) {
             throw new IllegalStateException("No se pudo guardar la configuración", e);
+        }
+    }
+
+    // ---------- Historial de autorizaciones (CAI) y compra de talonarios ----------
+
+    /** Todas las autorizaciones registradas, la más reciente primero, con cuántas facturas se emitieron con cada una. */
+    public List<AutorizacionCai> autorizaciones() {
+        String sql = "SELECT a.id_cai, a.cai, a.prefijo, a.rango_desde, a.rango_hasta, a.fecha_limite, "
+                + "COALESCE(a.fecha_compra, ''), a.imprenta, a.costo_cent, a.nota, COALESCE(u.nombre, ''), a.registrado_en, "
+                + "(SELECT COUNT(*) FROM facturas_venta f WHERE a.cai = f.cai), "
+                + "(SELECT COUNT(*) FROM facturas_venta f WHERE a.cai = f.cai AND f.anulada = 1), "
+                + "COALESCE((SELECT MIN(f.numero) FROM facturas_venta f WHERE a.cai = f.cai), ''), "
+                + "COALESCE((SELECT MAX(f.numero) FROM facturas_venta f WHERE a.cai = f.cai), '') "
+                + "FROM autorizaciones_cai a LEFT JOIN usuarios u ON u.id_usuario = a.id_usuario ORDER BY a.id_cai DESC";
+        List<AutorizacionCai> lista = new ArrayList<>();
+        try (Connection c = DatabaseConnection.getConnection();
+             Statement st = c.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                lista.add(new AutorizacionCai(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getInt(4), rs.getInt(5),
+                        rs.getString(6), rs.getString(7), rs.getString(8), rs.getInt(9), rs.getString(10), rs.getString(11),
+                        rs.getString(12), rs.getInt(13), rs.getInt(14), rs.getString(15), rs.getString(16)));
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo leer el historial de CAI", e);
+        }
+        return lista;
+    }
+
+    /**
+     * Registra la compra de un talonario nuevo (con su CAI) y lo deja como el CAI vigente: el siguiente número
+     * pasa a ser el primero del rango. El CAI anterior se queda en el historial. Todo en una transacción.
+     * Los mensajes de IllegalArgumentException están pensados para mostrarse tal cual.
+     */
+    public int registrarAutorizacion(String cai, String prefijo, int desde, int hasta, String limite, String fechaCompra,
+                                     String imprenta, int costoCent, String nota, int idUsuario) {
+        String caiLimpio = cai == null ? "" : cai.trim().toUpperCase();
+        if (caiLimpio.isEmpty() || caiLimpio.length() > 60) throw new IllegalArgumentException("Escribe el CAI (máximo 60 caracteres)");
+        if (prefijo == null || !prefijo.trim().matches("\\d{3}-\\d{3}-\\d{2}"))
+            throw new IllegalArgumentException("El prefijo debe verse así: 000-001-01");
+        if (desde <= 0 || hasta < desde)
+            throw new IllegalArgumentException("Revisa el rango: \"desde\" no puede ser mayor que \"hasta\"");
+        if (limite == null || !limite.matches("\\d{4}-\\d{2}-\\d{2}")) throw new IllegalArgumentException("La fecha límite debe ser AAAA-MM-DD");
+        if (fechaCompra == null || !fechaCompra.matches("\\d{4}-\\d{2}-\\d{2}")) throw new IllegalArgumentException("La fecha de compra debe ser AAAA-MM-DD");
+        try {
+            if (LocalDate.parse(limite).isBefore(LocalDate.now()))
+                throw new IllegalArgumentException("La fecha límite ya pasó: revisa el CAI");
+            LocalDate.parse(fechaCompra);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("Una de las fechas no es válida");
+        }
+        if (costoCent < 0 || costoCent > 100_000_000) throw new IllegalArgumentException("Revisa el costo de la compra");
+        String imp = imprenta == null ? "" : imprenta.trim();
+        String not = nota == null ? "" : nota.trim();
+        if (imp.length() > 80 || not.length() > 120) throw new IllegalArgumentException("La imprenta o la nota son muy largas");
+        String pref = prefijo.trim();
+
+        try (Connection c = DatabaseConnection.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement("SELECT cai FROM autorizaciones_cai WHERE cai = ?")) {
+                    ps.setString(1, caiLimpio);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) throw new IllegalArgumentException("Ese CAI ya está registrado");
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT cai FROM autorizaciones_cai WHERE prefijo = ? AND rango_desde <= ? AND rango_hasta >= ? LIMIT 1")) {
+                    ps.setString(1, pref);
+                    ps.setInt(2, hasta);
+                    ps.setInt(3, desde);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) throw new IllegalArgumentException("Ese rango se cruza con el del CAI " + rs.getString(1));
+                    }
+                }
+                int id;
+                String ins = "INSERT INTO autorizaciones_cai (cai, prefijo, rango_desde, rango_hasta, fecha_limite, fecha_compra, "
+                        + "imprenta, costo_cent, nota, id_usuario) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement ps = c.prepareStatement(ins, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setString(1, caiLimpio);
+                    ps.setString(2, pref);
+                    ps.setInt(3, desde);
+                    ps.setInt(4, hasta);
+                    ps.setString(5, limite);
+                    ps.setString(6, fechaCompra);
+                    ps.setString(7, imp);
+                    ps.setInt(8, costoCent);
+                    ps.setString(9, not);
+                    ps.setInt(10, idUsuario);
+                    ps.executeUpdate();
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        rs.next();
+                        id = rs.getInt(1);
+                    }
+                }
+                ponerConfig(c, "factura_cai", caiLimpio);
+                ponerConfig(c, "factura_prefijo", pref);
+                ponerConfig(c, "factura_rango_desde", String.valueOf(desde));
+                ponerConfig(c, "factura_rango_hasta", String.valueOf(hasta));
+                ponerConfig(c, "factura_fecha_limite", limite);
+                ponerConfig(c, "factura_siguiente", String.valueOf(desde));
+                c.commit();
+                return id;
+            } catch (SQLException | RuntimeException e) {
+                c.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo registrar el CAI", e);
+        }
+    }
+
+    /** Si el CAI de la configuración no está en el historial lo agrega; si ya está, actualiza su rango y fecha. */
+    private static void sincronizarAutorizacion(Connection c, ConfigFactura n) throws SQLException {
+        String cai = n.cai().trim().toUpperCase();
+        try (PreparedStatement ps = c.prepareStatement("UPDATE autorizaciones_cai SET prefijo = ?, rango_desde = ?, "
+                + "rango_hasta = ?, fecha_limite = ? WHERE cai = ?")) {
+            ps.setString(1, n.prefijo());
+            ps.setInt(2, n.desde());
+            ps.setInt(3, n.hasta());
+            ps.setString(4, n.limite());
+            ps.setString(5, cai);
+            if (ps.executeUpdate() > 0) return;
+        }
+        try (PreparedStatement ps = c.prepareStatement("INSERT INTO autorizaciones_cai (cai, prefijo, rango_desde, rango_hasta, "
+                + "fecha_limite) VALUES (?, ?, ?, ?, ?)")) {
+            ps.setString(1, cai);
+            ps.setString(2, n.prefijo());
+            ps.setInt(3, n.desde());
+            ps.setInt(4, n.hasta());
+            ps.setString(5, n.limite());
+            ps.executeUpdate();
+        }
+    }
+
+    private static void ponerConfig(Connection c, String clave, String valor) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("INSERT INTO config (clave, valor) VALUES (?, ?) "
+                + "ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor")) {
+            ps.setString(1, clave);
+            ps.setString(2, valor);
+            ps.executeUpdate();
         }
     }
 

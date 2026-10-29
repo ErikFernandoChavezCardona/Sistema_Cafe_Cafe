@@ -2,6 +2,7 @@ package application.controller;
 
 import application.model.dao.FacturaDAO;
 import application.model.dao.ProveedorDAO;
+import application.model.entity.AutorizacionCai;
 import application.model.entity.ConfigFactura;
 import application.model.entity.Factura;
 import application.model.entity.FacturaCompra;
@@ -197,6 +198,71 @@ public class FacturaBridge {
         } catch (Exception e) {
             return fallo(e);
         }
+    }
+
+    /**
+     * Historial de CAI, el más reciente primero. st: Vigente, Reemplazada, Agotada o Vencida. La compra del talonario
+     * (imprenta, fecha, costo) puede venir vacía en los CAI registrados antes de existir este historial.
+     */
+    public String autorizaciones() {
+        if (!esAdministrador()) return "[]";
+        try {
+            String activo = dao.config().cai().trim();
+            String hoy = LocalDate.now().toString();
+            StringBuilder b = new StringBuilder("[");
+            boolean primero = true;
+            for (AutorizacionCai a : dao.autorizaciones()) {
+                boolean act = a.cai().equalsIgnoreCase(activo);
+                String st;
+                if (a.limite().compareTo(hoy) < 0) st = "Vencida";
+                else if (a.sinUsar() == 0) st = "Agotada";
+                else st = act ? "Vigente" : "Reemplazada";
+                if (!primero) b.append(',');
+                primero = false;
+                b.append("{\"id\":").append(a.id()).append(",\"cai\":").append(Json.texto(a.cai()))
+                        .append(",\"pref\":").append(Json.texto(a.prefijo()))
+                        .append(",\"desde\":").append(Json.texto(numero(a.prefijo(), a.desde())))
+                        .append(",\"hasta\":").append(Json.texto(numero(a.prefijo(), a.hasta())))
+                        .append(",\"total\":").append(a.total()).append(",\"usadas\":").append(a.usadas())
+                        .append(",\"anuladas\":").append(a.anuladas()).append(",\"sin\":").append(a.sinUsar())
+                        .append(",\"primera\":").append(Json.texto(a.primera())).append(",\"ultima\":").append(Json.texto(a.ultima()))
+                        .append(",\"limite\":").append(Json.texto(a.limite())).append(",\"compra\":").append(Json.texto(a.fechaCompra()))
+                        .append(",\"imprenta\":").append(Json.texto(a.imprenta())).append(",\"costo\":").append(a.costoCent())
+                        .append(",\"nota\":").append(Json.texto(a.nota())).append(",\"por\":").append(Json.texto(a.registradoPor()))
+                        .append(",\"reg\":").append(Json.texto(a.registradoEn())).append(",\"act\":").append(act)
+                        .append(",\"st\":").append(Json.texto(st)).append('}');
+            }
+            return b.append(']').toString();
+        } catch (Exception e) {
+            Registro.error(e);
+            error("No se pudo leer el historial de CAI");
+            return "[]";
+        }
+    }
+
+    /**
+     * Registra la compra de un talonario nuevo y lo deja como CAI vigente (el siguiente número será el primero del rango).
+     * El costo llega en centavos. Devuelve {"ok":true,"id":N} o {"ok":false}.
+     */
+    public String registrarAutorizacion(String cai, String prefijo, String desde, String hasta, String limite,
+                                        String fechaCompra, String imprenta, String costoCentavos, String nota) {
+        try {
+            Usuario u = web.usuarioActual();
+            if (u == null) return sesionVencida();
+            if (!u.esAdministrador()) throw new IllegalStateException("Solo el administrador puede registrar un CAI");
+            int id = dao.registrarAutorizacion(cai, prefijo, entero(desde), entero(hasta), limite == null ? "" : limite.trim(),
+                    fechaCompra == null ? "" : fechaCompra.trim(), imprenta, costoCentavos == null || costoCentavos.isBlank() ? 0 : entero(costoCentavos),
+                    nota, u.id());
+            AuditoriaDAO.registrar(u, "CAI registrado", cai.trim().toUpperCase() + " · rango " + entero(desde) + "-" + entero(hasta)
+                    + " · vence " + limite.trim() + " · compra L " + String.format("%.2f", (costoCentavos == null || costoCentavos.isBlank() ? 0 : entero(costoCentavos)) / 100.0));
+            return "{\"ok\":true,\"id\":" + id + "}";
+        } catch (Exception e) {
+            return fallo(e);
+        }
+    }
+
+    private static String numero(String prefijo, int n) {
+        return prefijo + "-" + String.format("%08d", n);
     }
 
     /** [{"id":3,"pv":"Lácteos","nu":"001-002-01-00004512","fe":"2026-10-25","no":"Leche","to":320000}, ...] */

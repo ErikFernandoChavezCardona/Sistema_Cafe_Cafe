@@ -79,6 +79,7 @@ select.in{appearance:none}
   .nota{margin-top:4px}
   .fila,.esp,.dif-r{break-inside:avoid}
 }
+.copia{align-self:flex-start;border:2px solid var(--tinta);border-radius:8px;padding:4px 12px;font-weight:700;letter-spacing:.14em;font-size:13px}
 </style>
 </head>
 <body>
@@ -134,7 +135,7 @@ select.in{appearance:none}
       <option>General</option><option>Insumos</option><option>Servicios</option><option>Transporte</option><option>Limpieza</option><option>Otros</option>
     </select>
     <label for="eg-m">Monto</label>
-    <input class="in m" id="eg-m" inputmode="decimal" placeholder="L 0.00" autocomplete="off" required>
+    <input class="in m" id="eg-m" data-fmt="dec2" inputmode="decimal" placeholder="L 0.00" autocomplete="off" required>
     <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar egreso</button></div>
   </form>
 </div></div>
@@ -145,7 +146,7 @@ select.in{appearance:none}
     <label for="in-d">Concepto</label>
     <input class="in" id="in-d" placeholder="Ej: Reposición de cambio" autocomplete="off" required>
     <label for="in-m">Monto</label>
-    <input class="in m" id="in-m" inputmode="decimal" placeholder="L 0.00" autocomplete="off" required>
+    <input class="in m" id="in-m" data-fmt="dec2" inputmode="decimal" placeholder="L 0.00" autocomplete="off" required>
     <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar ingreso</button></div>
   </form>
 </div></div>
@@ -155,7 +156,7 @@ select.in{appearance:none}
   <p class="nota" style="margin:0">Cuenta el efectivo que hay en la caja y escríbelo aquí.</p>
   <form data-f="cierre">
     <div class="fila" style="border:0;padding:0"><span>Efectivo esperado</span><b class="mono" id="c-esp"></b></div>
-    <input class="in m" id="c-m" inputmode="decimal" placeholder="Efectivo contado L 0.00" autocomplete="off" required>
+    <input class="in m" id="c-m" data-fmt="dec2" inputmode="decimal" placeholder="Efectivo contado L 0.00" autocomplete="off" required>
     <p class="dif" id="c-dif"></p>
     <p class="nota" style="margin:0">Al cerrar, no se podrá vender hasta abrir una caja nueva.</p>
     <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill peligro">Cerrar caja</button></div>
@@ -220,6 +221,8 @@ function pintar(){
 
 window.onJavaReady=()=>{
   // Sin caja abierta no hay panel: se va a abrir caja
+  // Reportes pidió reimprimir un cierre pasado: se muestra ese reporte, marcado como copia
+  try{const c=JSON.parse(javaCaja.cierreParaReimprimir());if(c.ok){reporte(c);return}}catch(e){}
   if(!javaApp.hayTurnoAbierto()){javaApp.irA('caja.html');return}
   try{ESADMIN=!!JSON.parse(javaApp.sesion()).admin}catch(e){ESADMIN=false}
   cargar();
@@ -335,7 +338,7 @@ function reporte(r){
     `<div class="fila sub"><span>${hora(m.h)} · ${esc(m.tipo)}: ${esc(m.d)}<br>Motivo: ${esc(m.mo||'—')} · anuló ${esc(m.ap||'—')}</span><span class="mono">${money(m.m)}</span></div>`).join(''):'';
   $('#reporte').style.display='flex';
   $('#reporte').innerHTML=
-    `<p class="eyebrow">Café Café</p>`+
+    `<p class="eyebrow">Café Café</p>`+(r.copia?`<p class="copia">COPIA · reimpreso el ${ahora().slice(0,16)}</p>`:'')+
     f('Abrió la caja',esc(r.abrio))+f('Cerró la caja',esc(r.cerro||'—'))+
     f('Apertura',esc(r.apertura))+f('Cierre',esc(r.cierre))+
     tit('Ventas del turno')+
@@ -350,11 +353,12 @@ function reporte(r){
     `<div class="dif-r"><span>${txt}</span><strong class="mono ${dif>0?'pos':dif<0?'neg':''}">${money(Math.abs(dif))}</strong></div>`+
     `<p class="nota">Tarjeta y transferencia no suman al efectivo de la caja.</p>`+
     lista+listaAnu+
-    `<div class="btns"><button class="pill" id="imp">Imprimir reporte</button><button class="pill fill" id="nueva">Abrir caja nueva</button></div>`;
+    `<div class="btns"><button class="pill" id="imp">Imprimir reporte</button>${r.copia?'<button class="pill fill" id="nueva">Volver a Reportes</button>':'<button class="pill fill" id="nueva">Abrir caja nueva</button>'}</div>`;
   $('#imp').onclick=()=>{if(enJava()&&javaCaja.imprimirReporte)javaCaja.imprimirReporte();else window.print()};
-  $('#nueva').onclick=()=>{if(window.javaApp)javaApp.irA('caja.html');else location.href='caja.html'};
+  $('#nueva').onclick=()=>{const d=r.copia?'reportes.html':'caja.html';if(window.javaApp)javaApp.irA(d);else location.href=d};
 }
 </script>
+<script src="../assets/js/campos.js"></script>
 <script src="../assets/js/nav.js"></script>
 </body>
 </html>

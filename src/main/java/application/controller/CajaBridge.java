@@ -243,6 +243,57 @@ public class CajaBridge {
         }
     }
 
+    /** Turno cerrado cuyo reporte se va a mostrar de nuevo (lo pide Reportes y lo recoge caja_panel.html). */
+    private int cierreSolicitado;
+
+    /** Solo administradores: abre el reporte de un turno ya cerrado para verlo o reimprimirlo (sale marcado como COPIA). */
+    public void verCierre(String idTurno) {
+        try {
+            Usuario u = web.usuarioActual();
+            if (u == null || !u.esAdministrador()) {
+                error("Solo el administrador puede reimprimir cierres");
+                return;
+            }
+            int id = Integer.parseInt(idTurno.trim());
+            if (turnoDAO.cierre(id) == null) {
+                error("Ese turno no está cerrado");
+                return;
+            }
+            cierreSolicitado = id;
+            web.irA("caja_panel.html");
+        } catch (NumberFormatException e) {
+            error("No se pudo identificar el turno");
+        } catch (Exception e) {
+            Registro.error(e);
+            error("No se pudo abrir el cierre");
+        }
+    }
+
+    /**
+     * Lo llama caja_panel.html al abrir: si hay un cierre pedido devuelve su reporte (mismo formato que cerrarCaja,
+     * con "copia":true) y lo olvida; si no, devuelve "{}".
+     */
+    public String cierreParaReimprimir() {
+        int id = cierreSolicitado;
+        cierreSolicitado = 0;
+        try {
+            Usuario u = web.usuarioActual();
+            if (id == 0 || u == null || !u.esAdministrador()) return "{}";
+            ResultadoCierre r = turnoDAO.cierre(id);
+            if (r == null) return "{}";
+            AuditoriaDAO.registrar(u, "Cierre reimpreso", "Turno N.º " + id);
+            return "{\"ok\":true,\"copia\":true," + cifras(r.resumen())
+                    + ",\"cierre\":" + Json.texto(r.cierreEn())
+                    + ",\"cerro\":" + Json.texto(r.usuarioCerro())
+                    + ",\"movs\":" + movimientosJsonSeguro(id)
+                    + ",\"contado\":" + r.contadoCent()
+                    + ",\"diferencia\":" + r.diferenciaCent() + "}";
+        } catch (Exception e) {
+            Registro.error(e);
+            return "{}";
+        }
+    }
+
     /**
      * El WebView de JavaFX no soporta window.print(): se imprime desde Java.
      * Imprime la página tal como está; el CSS @media print de caja_panel.html deja solo el reporte.

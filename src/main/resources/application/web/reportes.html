@@ -58,7 +58,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
 .tabla{border:1px solid var(--linea);border-radius:14px;overflow:hidden}
 .r{display:grid;gap:12px;align-items:center;padding:6px 20px;border-bottom:1px solid var(--linea);min-height:46px}
 .r:last-child{border-bottom:0}
-.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr}.rl{grid-template-columns:1.1fr 2.4fr .8fr .8fr 1.1fr 1fr 1.1fr}
+.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr 1fr}.rl{grid-template-columns:1.1fr 2.4fr .8fr .8fr 1.1fr 1fr 1.1fr}
 .th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:40px}
 .tr{font-weight:700;background:var(--niebla)}
 .b{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:600}.b.ok{background:var(--niebla);color:var(--prof)}.b.w{background:#F6E8C8;color:#6b5314}.b.ab{background:#EFE6CF;color:#5A4410}
@@ -70,6 +70,7 @@ select.in{appearance:none;width:220px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 22px;border-radius:999px;font-weight:600;z-index:20;display:none}
 #toast.err{background:#b4492f}
 [hidden]{display:none!important}
+.vcierre{min-height:34px;padding:0 12px;border-radius:999px;border:1.5px solid var(--prof);color:var(--prof);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -131,7 +132,7 @@ select.in{appearance:none;width:220px}
   </section>
 
   <section id="t-tur" hidden>
-    <div class="tabla"><div class="r rt th"><span>Fecha</span><span>Cajero</span><span>Apertura</span><span>Cierre</span><span>Esperado</span><span>Contado</span><span>Diferencia</span><span>Estado</span></div><div id="l-tur"></div>
+    <div class="tabla"><div class="r rt th"><span>Fecha</span><span>Cajero</span><span>Apertura</span><span>Cierre</span><span>Esperado</span><span>Contado</span><span>Diferencia</span><span>Estado</span><span></span></div><div id="l-tur"></div>
       <div class="pie">Esperado = monto inicial + ventas en efectivo + ingresos − egresos pagados desde caja. La diferencia es lo contado menos lo esperado.</div></div>
   </section>
 
@@ -225,7 +226,8 @@ function pintarTur(L){
     return `<div class="r rt"><span>${t.ap.slice(0,10)}</span><span>${esc(t.cj)}</span><span class="mono">${hora(t.ap)}</span><span class="mono">${hora(t.ci)}</span>
       <span class="mono">${t.es==null?'—':money(t.es)}</span><span class="mono">${t.co==null?'—':money(t.co)}</span>
       <span class="mono ${dif<0?'neg':dif>0?'pos':''}">${ab||!dif?'—':money(dif)}</span>
-      <span class="b ${ab?'ab':dif?'w':'ok'}">${ab?'Abierta':dif?'Con diferencia':'Cuadrado'}</span></div>`}).join('')
+      <span class="b ${ab?'ab':dif?'w':'ok'}">${ab?'Abierta':dif?'Con diferencia':'Cuadrado'}</span>
+      <span>${ab?'':`<button class="vcierre" data-cierre="${t.id}">Ver cierre</button>`}</span></div>`}).join('')
     :'<p class="empty">No hay turnos de caja en este período</p>';
 }
 
@@ -318,6 +320,7 @@ window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar()},
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   const d=b.dataset;
+  if(d.cierre){javaCaja.verCierre(d.cierre);return}
   if(d.p){
     per=d.p;document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('on',x===b));
     $('#f-rango').style.display=per==='rango'?'flex':'none';cerrarCal();

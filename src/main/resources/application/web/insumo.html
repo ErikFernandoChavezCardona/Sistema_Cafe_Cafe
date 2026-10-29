@@ -91,7 +91,7 @@ select.in{appearance:none}
       <div><label for="c" id="l-c">Costo</label><input class="in m" id="c" readonly tabindex="-1" placeholder="Se llena con la primera compra">
         <p class="nota" style="margin:4px 0 0 8px">Lo calcula solo cada compra registrada (lo pagado entre lo comprado). No se escribe a mano.</p></div>
       <div><label for="pv">Proveedor</label><select class="in" id="pv"></select></div>
-      <div><label for="m" id="l-m">Stock mínimo</label><input class="in m" id="m" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+      <div><label for="m" id="l-m">Stock mínimo</label><input class="in m" id="m" data-fmt="dec" inputmode="decimal" placeholder="0" autocomplete="off"></div>
       <div class="pieC"><span>Activo</span>
         <button type="button" class="sw" id="a" data-sw aria-pressed="true" aria-label="Activo"><i></i></button></div>
       <p class="nota" id="nota"></p>
@@ -102,8 +102,8 @@ select.in{appearance:none}
         <p class="eyebrow">Registrar compra</p>
         <form id="f-compra" style="display:flex;flex-direction:column;gap:12px">
           <div class="tres">
-            <div><label for="bc" id="l-bc">Cantidad comprada</label><input class="in m" id="bc" inputmode="decimal" placeholder="0" autocomplete="off"></div>
-            <div><label for="bt">Costo total (L)</label><input class="in m" id="bt" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+            <div><label for="bc" id="l-bc">Cantidad comprada</label><input class="in m" id="bc" data-fmt="dec" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+            <div><label for="bt">Costo total (L)</label><input class="in m" id="bt" data-fmt="dec2" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
             <div><label for="bp" id="l-bp">Costo por unidad</label><input class="in m" id="bp" readonly tabindex="-1"></div>
           </div>
           <label class="ck"><input type="checkbox" id="bact" checked> Actualizar el costo del insumo con esta compra</label>
@@ -126,7 +126,7 @@ select.in{appearance:none}
   <p class="nota">Para un conteo físico, una merma o un derrame. Queda anotado en el historial.</p>
   <form id="f-aj">
     <div class="seg"><button type="button" class="chip on" data-modo="conteo">Conteo físico</button><button type="button" class="chip" data-modo="merma">Merma</button></div>
-    <div><label for="aj-q" id="aj-l">Stock real contado</label><input class="in m" id="aj-q" inputmode="decimal" placeholder="0" autocomplete="off">
+    <div><label for="aj-q" id="aj-l">Stock real contado</label><input class="in m" id="aj-q" data-fmt="dec" inputmode="decimal" placeholder="0" autocomplete="off">
       <p class="nota" id="aj-h" style="margin:4px 0 0 8px"></p></div>
     <div><label for="aj-m">Motivo (obligatorio)</label><input class="in" id="aj-m" maxlength="80" placeholder="Ej: se derramó, conteo del cierre" autocomplete="off"></div>
     <div class="pieC"><span>Stock quedará en: <b class="mono" id="aj-pre">—</b></span></div>
@@ -312,6 +312,7 @@ document.addEventListener('submit',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar()});
 </script>
+<script src="../assets/js/campos.js"></script>
 <script src="../assets/js/nav.js"></script>
 </body>
 </html>

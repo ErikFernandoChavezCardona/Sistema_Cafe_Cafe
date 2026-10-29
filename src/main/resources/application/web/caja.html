@@ -21,7 +21,7 @@ main{width:min(380px,92vw);display:flex;flex-direction:column;gap:14px;text-alig
   <h1 class="h">Abrir caja</h1>
   <p class="sub">Escribe el efectivo con el que empieza la caja chica.</p>
   <form id="f">
-    <input class="in m" id="m" inputmode="decimal" placeholder="L 0.00" autofocus required>
+    <input class="in m" id="m" data-fmt="dec2" inputmode="decimal" placeholder="L 0.00" autofocus required>
     <button class="pill fill">Abrir caja</button>
   </form>
   <p id="err" role="alert"></p>
@@ -42,5 +42,6 @@ document.getElementById('f').addEventListener('submit',e=>{
   if(window.javaApp) javaApp.abrirTurno(String(centavos)); else location.href='pos.html';
 });
 </script>
+<script src="../assets/js/campos.js"></script>
 </body>
 </html>

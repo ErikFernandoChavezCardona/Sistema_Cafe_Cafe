@@ -95,8 +95,8 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
   <div id="pv-l"></div>
   <form class="pa" id="f-pv">
     <input class="in" id="pv-n" maxlength="60" placeholder="Nuevo proveedor" aria-label="Nombre del proveedor" autocomplete="off">
-    <input class="in" id="pv-t" maxlength="20" placeholder="Teléfono" aria-label="Teléfono" autocomplete="off">
-    <input class="in" id="pv-r" maxlength="25" placeholder="RTN (opcional)" aria-label="RTN" autocomplete="off">
+    <input class="in" id="pv-t" data-fmt="tel" maxlength="20" placeholder="Teléfono" aria-label="Teléfono" autocomplete="off">
+    <input class="in" id="pv-r" data-fmt="rtn" maxlength="25" placeholder="RTN (opcional)" aria-label="RTN" autocomplete="off">
     <span style="display:flex;gap:8px"><button class="pill" id="pv-g">Agregar</button><button type="button" class="pill" id="pv-c" hidden>Cancelar</button></span>
   </form>
   <div class="fin"><button class="pill fill" data-cerrar>Listo</button></div>
@@ -217,6 +217,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{if(e.target.id==='q')pintarLista()});
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='f-pv')guardarProv()});
 </script>
+<script src="../assets/js/campos.js"></script>
 <script src="../assets/js/nav.js"></script>
 </body>
 </html>

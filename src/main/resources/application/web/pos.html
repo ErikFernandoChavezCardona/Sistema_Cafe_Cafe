@@ -199,12 +199,12 @@ function pintarCobro(){
    <p class="eyebrow">Cobrar${nombre()?' · '+esc(nombre()):''}</p>
    <div class="tot"><span class="eyebrow">Total</span><strong class="mono">${money(t)}</strong></div>
    <div class="met">${['Efectivo','Tarjeta','Transferencia'].map(x=>`<button class="chip${x===metodo?' on':''}" data-met="${x}">${x}</button>`).join('')}</div>
-   ${ef?`<input class="in m" id="rec" inputmode="decimal" autocomplete="off" placeholder="Recibido L 0.00" value="${recC?recC/100:''}">
+   ${ef?`<input class="in m" id="rec" data-fmt="dec2" inputmode="decimal" autocomplete="off" placeholder="Recibido L 0.00" value="${recC?recC/100:''}">
    <div class="rap"><button class="chip" data-rap="${t}">Exacto</button><button class="chip" data-rap="10000">L 100</button><button class="chip" data-rap="50000">L 500</button></div>
    <div class="cam"><span class="eyebrow">Cambio</span><b class="mono" id="cam"></b></div>`:'<p class="empty" style="margin:6px 0">Se cobra el total exacto.</p>'}
    ${cliOn?`<div class="fs"><p class="eyebrow">Factura con datos del cliente</p>
      <input class="in" id="cli-n" maxlength="60" autocomplete="off" placeholder="Nombre del cliente" value="${esc(cliNom)}">
-     <input class="in m" id="cli-r" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(cliRtn)}">
+     <input class="in m" id="cli-r" data-fmt="rtn" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(cliRtn)}">
      <p class="er" id="cli-e"></p><button class="lnk" data-cli="0">Quitar y dejar como Consumidor final</button></div>`
    :`<div class="cf"><span>Factura a <b>Consumidor final</b></span><button class="lnk" data-cli="1">¿Pide factura con RTN?</button></div>`}
    <div class="acc"><button class="pill" data-volver="1">Volver</button><button class="pill fill" id="ok">Confirmar cobro</button></div></div>`;
@@ -252,7 +252,7 @@ function pintarComprobante(){
    <div class="tkbox">${FacturaTicket.cuerpo(f)}</div>
    ${reemOn?`<div class="fs"><p class="eyebrow">Factura con datos del cliente</p>
      <input class="in" id="re-n" maxlength="60" autocomplete="off" placeholder="Nombre del cliente" value="${esc(reNom)}">
-     <input class="in m" id="re-r" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(reRtn)}">
+     <input class="in m" id="re-r" data-fmt="rtn" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(reRtn)}">
      <p class="er" id="re-e"></p>
      <p class="nota" style="font-size:12px;color:var(--suave)">Se anula esta factura y se emite otra con estos datos (consume un número nuevo del CAI).</p>
      <div class="acc"><button class="pill" id="reno">Volver</button><button class="pill fill" id="reok" disabled>Emitir con estos datos</button></div></div>`
@@ -337,6 +337,7 @@ document.addEventListener('click',e=>{
 $('#q').addEventListener('input',e=>{q=norm(e.target.value.trim());grid()});
 chips();grid();ticket();
 </script>
+<script src="../assets/js/campos.js"></script>
 <script src="../assets/js/nav.js"></script>
 </body>
 </html>

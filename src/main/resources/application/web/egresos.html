@@ -153,7 +153,7 @@ legend{padding:0;font-size:12px;color:var(--suave);margin-bottom:8px}
     <div><label class="t" for="r-d">Descripción</label><input class="in" id="r-d" maxlength="120" placeholder="Ej: Pago de agua potable" autocomplete="off"></div>
     <div class="dos">
       <div><label class="t" for="r-c">Categoría</label><select class="in" id="r-c"></select></div>
-      <div><label class="t" for="r-m">Monto (L)</label><input class="in m" id="r-m" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+      <div><label class="t" for="r-m">Monto (L)</label><input class="in m" id="r-m" data-fmt="dec2" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
     </div>
     <fieldset>
       <legend>¿De dónde sale el dinero?</legend>
@@ -402,6 +402,7 @@ document.addEventListener('submit',e=>{
   if(e.target.id==='f-reg')guardarEgreso();else if(e.target.id==='f-anu')anular();
 });
 </script>
+<script src="../assets/js/campos.js"></script>
 <script src="../assets/js/nav.js"></script>
 </body>
 </html>

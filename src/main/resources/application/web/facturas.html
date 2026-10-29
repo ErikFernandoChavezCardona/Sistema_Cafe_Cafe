@@ -45,6 +45,13 @@ select.in{appearance:none}
 .modal label.t{display:block;font-size:12px;color:var(--suave);margin:0 0 4px 8px}
 .btns{display:flex;gap:10px;margin-top:6px}.btns .pill{flex:1}
 .in.m{font-family:var(--m)}
+.cai-i{border:1px solid var(--linea);border-radius:14px;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.cai-i.act{border-color:var(--prof);background:var(--niebla)}
+.cai-i .top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.cai-i .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px 24px;font-size:13px}
+.cai-i .meta span{color:var(--suave)}.cai-i .meta b{font-weight:600;color:var(--tinta)}
+.b.vi{background:#DDEFD9;color:#24591B}.b.re{background:var(--linea);color:var(--suave)}.b.ag,.b.ve{background:#F6D5CC;color:#8A2E15}
+#l-cai{display:flex;flex-direction:column;gap:12px}
 .lin{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--linea)}
 .tot{display:flex;justify-content:space-between;padding:3px 0}.tot.g{border-top:2px solid var(--prof);margin-top:6px;padding-top:8px;font-size:18px}
 .tkbox{flex:none;display:flex;justify-content:center;overflow-x:auto}
@@ -71,7 +78,7 @@ select.in{appearance:none}
     <div><button class="pill fill" id="b-acc" data-acc></button></div>
   </header>
   <div class="cai" id="cai"></div>
-  <div class="tabs"><button class="tab on" data-tab="ven">Emitidas a clientes</button><button class="tab" data-tab="com">Compras a proveedores</button><button class="tab" data-tab="cfg">Configuración del CAI</button></div>
+  <div class="tabs"><button class="tab on" data-tab="ven">Emitidas a clientes</button><button class="tab" data-tab="com">Compras a proveedores</button><button class="tab" data-tab="cai">CAI e historial</button><button class="tab" data-tab="cfg">Configuración</button></div>
 
   <section id="t-ven">
     <p class="nota" style="margin-bottom:10px">Cada venta se factura sola en el momento de cobrar. Aquí puedes verlas, reimprimirlas, cambiarles los datos del cliente o anularlas.</p>
@@ -92,20 +99,25 @@ select.in{appearance:none}
     <div class="tabla"><div class="r rc th"><span>Proveedor</span><span>N.º de factura</span><span>Fecha</span><span>Nota</span><span>Total</span></div><div id="l-com"></div><div class="pie">Aquí queda el respaldo de lo que compras. Una misma factura de un proveedor no se puede registrar dos veces.</div></div>
   </section>
 
+  <section id="t-cai" hidden>
+    <p class="nota" style="margin-bottom:10px">Cada vez que compras un talonario de facturas llega un CAI nuevo del SAR. Regístralo aquí: queda como el vigente y el anterior se conserva en el historial con cuántas facturas se emitieron con él.</p>
+    <div id="l-cai"></div>
+  </section>
+
   <section id="t-cfg" hidden>
     <div class="grid2">
-      <div class="card" style="gap:10px"><span class="eyebrow">Autorización del SAR</span>
-        <div><label class="t nota">CAI</label><input class="in m" id="c-cai"></div>
-        <div class="dos"><div><label class="t nota">Rango desde (n.º)</label><input class="in m" id="c-d" inputmode="numeric"></div><div><label class="t nota">Rango hasta (n.º)</label><input class="in m" id="c-h" inputmode="numeric"></div></div>
-        <div class="dos"><div><label class="t nota">Fecha límite de emisión</label><input class="in m" id="c-l" placeholder="AAAA-MM-DD"></div><div><label class="t nota">Siguiente número</label><input class="in m" id="c-s" inputmode="numeric"></div></div>
-        <div><label class="t nota">Prefijo del número (establecimiento-punto-tipo)</label><input class="in m" id="c-p" placeholder="000-001-01"></div>
-        <p class="nota">Al recibir un CAI nuevo: escribe el CAI, el rango (solo la parte final del número, sin el prefijo), la fecha límite y el primer número del rango en "Siguiente número". Mientras el sistema factura, ese número sube solo; no lo cambies a mano durante el día.</p>
+      <div class="card" style="gap:10px"><span class="eyebrow">CAI vigente (solo lectura)</span>
+        <div><label class="t nota">CAI</label><input class="in m" id="c-cai" disabled></div>
+        <div class="dos"><div><label class="t nota">Rango desde (n.º)</label><input class="in m" id="c-d" disabled data-fmt="int" inputmode="numeric"></div><div><label class="t nota">Rango hasta (n.º)</label><input class="in m" id="c-h" disabled data-fmt="int" inputmode="numeric"></div></div>
+        <div class="dos"><div><label class="t nota">Fecha límite de emisión</label><input class="in m" id="c-l" disabled placeholder="AAAA-MM-DD"></div><div><label class="t nota">Siguiente número</label><input class="in m" id="c-s" disabled data-fmt="int" inputmode="numeric"></div></div>
+        <div><label class="t nota">Prefijo del número (establecimiento-punto-tipo)</label><input class="in m" id="c-p" disabled placeholder="000-001-01"></div>
+        <p class="nota">Estos datos se llenan solos al registrar un talonario en la pestaña "CAI e historial". Mientras el sistema factura, el siguiente número sube solo.</p>
       </div>
       <div class="card" style="gap:10px"><span class="eyebrow">Datos del negocio en la factura</span>
         <div><label class="t nota">Nombre (razón social)</label><input class="in" id="c-n"></div>
-        <div class="dos"><div><label class="t nota">RTN del negocio</label><input class="in m" id="c-r" inputmode="numeric" maxlength="14"></div><div><label class="t nota">Teléfono</label><input class="in" id="c-t"></div></div>
+        <div class="dos"><div><label class="t nota">RTN del negocio</label><input class="in m" id="c-r" data-fmt="rtn" inputmode="numeric" maxlength="16"></div><div><label class="t nota">Teléfono</label><input class="in" id="c-t" data-fmt="tel"></div></div>
         <div><label class="t nota">Dirección</label><input class="in" id="c-di"></div>
-        <div class="dos"><div><label class="t nota">Correo</label><input class="in" id="c-e"></div><div><label class="t nota">ISV (%)</label><input class="in m" id="c-i" inputmode="decimal"></div></div>
+        <div class="dos"><div><label class="t nota">Correo</label><input class="in" id="c-e"></div><div><label class="t nota">ISV (%)</label><input class="in m" id="c-i" data-fmt="dec2" inputmode="decimal"></div></div>
         <label class="chk"><input type="checkbox" id="c-a"><span>Imprimir la factura automáticamente al cobrar</span></label>
         <p class="nota">Los precios del menú ya incluyen el ISV: la factura solo lo desglosa, así el total no cambia. Confirma estos datos con tu contador.</p>
         <button class="pill fill" data-guardar-cfg>Guardar configuración</button>
@@ -118,7 +130,7 @@ select.in{appearance:none}
   <p class="nota">Son ventas cobradas antes de que la facturación fuera automática, o ventas cuya factura se anuló.</p>
   <div><label class="t" for="e-v">Venta cobrada sin factura</label><select class="in" id="e-v"></select></div>
   <div id="e-det" class="card" style="gap:0"></div>
-  <div class="dos"><div><label class="t" for="e-n">Cliente</label><input class="in" id="e-n" value="Consumidor final" maxlength="60"></div><div><label class="t" for="e-r">RTN (opcional)</label><input class="in m" id="e-r" inputmode="numeric" maxlength="17" placeholder="14 dígitos"></div></div>
+  <div class="dos"><div><label class="t" for="e-n">Cliente</label><input class="in" id="e-n" value="Consumidor final" maxlength="60"></div><div><label class="t" for="e-r">RTN (opcional)</label><input class="in m" id="e-r" data-fmt="rtn" inputmode="numeric" maxlength="17" placeholder="14 dígitos"></div></div>
   <p class="nota" id="e-num"></p>
   <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-emitir>Emitir factura</button></div>
 </div></div>
@@ -127,7 +139,7 @@ select.in{appearance:none}
   <div class="btns"><button class="pill" data-cerrar>Cerrar</button><button class="pill fill" data-imprimir>Imprimir</button></div></div></div>
 
 <div class="fondo" id="m-cam"><div class="modal"><h2 class="h" style="font-size:22px">Cambiar datos del cliente</h2><p class="nota" id="cm-res"></p>
-  <div class="dos"><div><label class="t" for="cm-n">Cliente</label><input class="in" id="cm-n" maxlength="60"></div><div><label class="t" for="cm-r">RTN (opcional)</label><input class="in m" id="cm-r" inputmode="numeric" maxlength="17" placeholder="14 dígitos"></div></div>
+  <div class="dos"><div><label class="t" for="cm-n">Cliente</label><input class="in" id="cm-n" maxlength="60"></div><div><label class="t" for="cm-r">RTN (opcional)</label><input class="in m" id="cm-r" data-fmt="rtn" inputmode="numeric" maxlength="17" placeholder="14 dígitos"></div></div>
   <p class="nota">Una factura emitida no se edita: se anula y se emite otra con estos datos. La nueva consume el siguiente número del CAI y la anulada queda en el historial.</p>
   <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-cambiar>Anular y emitir de nuevo</button></div></div></div>
 
@@ -138,9 +150,19 @@ select.in{appearance:none}
 
 <div class="fondo" id="m-com"><div class="modal"><h2 class="h" style="font-size:22px">Registrar factura de compra</h2>
   <div class="dos"><div><label class="t" for="k-pv">Proveedor</label><select class="in" id="k-pv"></select></div><div><label class="t" for="k-nu">N.º de factura</label><input class="in m" id="k-nu" maxlength="25"></div></div>
-  <div class="dos"><div><label class="t" for="k-fe">Fecha</label><input class="in m" id="k-fe" placeholder="AAAA-MM-DD"></div><div><label class="t" for="k-to">Total (L)</label><input class="in m" id="k-to" inputmode="decimal" placeholder="0.00"></div></div>
+  <div class="dos"><div><label class="t" for="k-fe">Fecha</label><input class="in m" id="k-fe" data-fmt="fecha" placeholder="AAAA-MM-DD"></div><div><label class="t" for="k-to">Total (L)</label><input class="in m" id="k-to" data-fmt="dec2" inputmode="decimal" placeholder="0.00"></div></div>
   <div><label class="t" for="k-no">Nota (opcional)</label><input class="in" id="k-no" maxlength="80"></div>
   <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-guardar-com>Guardar</button></div></div></div>
+
+<div class="fondo" id="m-cai"><div class="modal"><h2 class="h" style="font-size:22px">Registrar compra de talonario</h2>
+  <div><label class="t" for="n-cai">CAI (el código de la autorización del SAR)</label><input class="in m" id="n-cai" maxlength="60" autocomplete="off"></div>
+  <div class="dos"><div><label class="t" for="n-p">Prefijo</label><input class="in m" id="n-p" data-fmt="pref" placeholder="000-001-01" maxlength="12"></div><div><label class="t" for="n-l">Fecha límite de emisión</label><input class="in m" id="n-l" data-fmt="fecha" placeholder="AAAA-MM-DD" maxlength="10"></div></div>
+  <div class="dos"><div><label class="t" for="n-d">Rango desde (n.º)</label><input class="in m" id="n-d" data-fmt="int" inputmode="numeric"></div><div><label class="t" for="n-h">Rango hasta (n.º)</label><input class="in m" id="n-h" data-fmt="int" inputmode="numeric"></div></div>
+  <div class="dos"><div><label class="t" for="n-i">Imprenta (opcional)</label><input class="in" id="n-i" maxlength="80"></div><div><label class="t" for="n-fc">Fecha de compra</label><input class="in m" id="n-fc" data-fmt="fecha" placeholder="AAAA-MM-DD" maxlength="10"></div></div>
+  <div class="dos"><div><label class="t" for="n-c">Costo del talonario (L)</label><input class="in m" id="n-c" data-fmt="dec2" inputmode="decimal" placeholder="0.00"></div><div><label class="t" for="n-no">Nota (opcional)</label><input class="in" id="n-no" maxlength="120"></div></div>
+  <p class="nota">El rango es solo la parte final del número, sin el prefijo. El primer número del rango será el siguiente factura.</p>
+  <label class="chk" id="n-aviso" hidden><input type="checkbox" id="n-ok"><span id="n-av"></span></label>
+  <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-guardar-cai>Registrar y usar este CAI</button></div></div></div>
 
 <div id="toast" role="alert"></div>
 <script src="../assets/js/factura_ticket.js"></script>
@@ -167,7 +189,7 @@ function pintarCai(){
    :`<div><b>CAI vigente</b><br><span class="nota">Quedan <b>${E.rest}</b> facturas del rango · vence en <b>${dias()}</b> días (${esc(E.limite)}) · siguiente: <span class="mono">${esc(E.numSig)}</span></span></div><div class="barra" title="Rango usado"><span style="width:${usado}%"></span></div>`;
   $('#b-acc').disabled=tab==='ven'&&bad;
 }
-function pintarAcc(){const b=$('#b-acc');b.hidden=tab==='cfg';b.textContent=tab==='ven'?'Facturar venta sin factura':'Registrar factura de compra'}
+function pintarAcc(){const b=$('#b-acc');b.hidden=tab==='cfg';b.textContent=tab==='ven'?'Facturar venta sin factura':tab==='cai'?'Registrar compra de talonario':'Registrar factura de compra'}
 function recargar(){E=J(B().estado());pintarCai();pintarVen()}
 
 function pintarVen(){
@@ -264,30 +286,68 @@ function guardarCompra(){
   cerrar();pintarCom();toast('Factura de compra registrada');
 }
 
+// ---- Historial de CAI y compra de talonarios
+const fechaL=f=>f&&/^\d{4}-\d{2}-\d{2}/.test(f)?f.slice(8,10)+'/'+f.slice(5,7)+'/'+f.slice(0,4):(f||'—');
+const CLS={Vigente:'vi',Reemplazada:'re',Agotada:'ag',Vencida:'ve'};
+function pintarHistorial(){
+  const as=J(B().autorizaciones());
+  $('#l-cai').innerHTML=as.length?as.map(a=>{
+    const pct=Math.min(100,a.usadas*100/Math.max(a.total,1));
+    return `<div class="cai-i${a.act?' act':''}"><div class="top"><b class="mono">${esc(a.cai)}</b><span class="b ${CLS[a.st]||'re'}">${esc(a.st)}</span></div>
+     <div class="meta"><div><span>Rango autorizado</span><br><b class="mono">${esc(a.desde)}</b> al <b class="mono">${esc(a.hasta)}</b> (${a.total})</div>
+      <div><span>Fecha límite</span><br><b>${fechaL(a.limite)}</b></div>
+      <div><span>Compra</span><br><b>${a.compra?fechaL(a.compra):'Sin registrar'}${a.imprenta?' · '+esc(a.imprenta):''}${a.costo?' · '+money(a.costo):''}</b></div>
+      <div><span>Registrado</span><br><b>${esc((a.reg||'').slice(0,16))}${a.por?' · '+esc(a.por):''}</b></div></div>
+     <div class="barra" title="Usadas"><span style="width:${pct}%"></span></div>
+     <div class="meta"><div><span>Facturas emitidas</span> <b>${a.usadas}</b> de ${a.total} (<b>${a.anuladas}</b> anuladas)</div><div><span>Sin usar</span> <b>${a.sin}</b></div>
+      <div><span>Primera / última emitida</span> <b class="mono">${a.usadas?esc(a.primera.slice(-8))+' / '+esc(a.ultima.slice(-8)):'—'}</b></div></div>
+     ${a.nota?`<p class="nota">${esc(a.nota)}</p>`:''}</div>`}).join(''):'<p class="empty">Todavía no hay CAI registrados</p>';
+}
+function abrirCai(){
+  ['n-cai','n-d','n-h','n-l','n-i','n-c','n-no'].forEach(i=>$('#'+i).value='');
+  $('#n-p').value=E.pref||'000-001-01';
+  const d=new Date();$('#n-fc').value=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+  const aviso=!E.problema&&E.rest>0;
+  $('#n-aviso').hidden=!aviso;$('#n-ok').checked=false;
+  if(aviso)$('#n-av').textContent='El CAI actual todavía tiene '+E.rest+' facturas sin usar y vence el '+fechaL(E.limite)+'. Entiendo que dejará de usarse (queda en el historial).';
+  abrir('m-cai');setTimeout(()=>$('#n-cai').focus(),30);
+}
+function guardarCai(){
+  const cai=$('#n-cai').value.trim(),p=$('#n-p').value.trim(),d=$('#n-d').value.trim(),h=$('#n-h').value.trim(),l=$('#n-l').value.trim(),fc=$('#n-fc').value.trim();
+  const costo=$('#n-c').value.trim()?Math.round(parseFloat($('#n-c').value.replace(',','.'))*100):0;
+  if(!cai){toast('Escribe el CAI',true);return}
+  if(!/^\d+$/.test(d)||!/^\d+$/.test(h)||+d<1||+h<+d){toast('Revisa el rango: solo números y "desde" no mayor que "hasta"',true);return}
+  if(isNaN(costo)||costo<0){toast('Revisa el costo del talonario',true);return}
+  if(!$('#n-aviso').hidden&&!$('#n-ok').checked){toast('Marca la casilla para confirmar que el CAI actual dejará de usarse',true);return}
+  const r=J(B().registrarAutorizacion(cai,p,d,h,l,fc,$('#n-i').value.trim(),String(costo),$('#n-no').value.trim()));if(!r.ok)return;
+  cerrar();recargar();pintarCfg();pintarHistorial();toast('CAI registrado: ya se factura con este talonario');
+}
+
 // ---- Configuración del CAI y del negocio
 function guardarCfg(){
   const r=J(B().guardarConfig($('#c-cai').value,$('#c-d').value,$('#c-h').value,$('#c-l').value,$('#c-s').value,$('#c-p').value,$('#c-n').value,$('#c-r').value,$('#c-di').value,$('#c-t').value,$('#c-e').value,$('#c-i').value||'0',$('#c-a').checked?'1':'0'));
   if(!r.ok)return;
-  recargar();pintarCfg();toast('Configuración guardada');
+  recargar();pintarCfg();if(tab==='cai')pintarHistorial();toast('Configuración guardada');
 }
 function irTab(t){
   tab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
-  ['ven','com','cfg'].forEach(x=>$('#t-'+x).hidden=x!==t);pintarAcc();pintarCai();
+  ['ven','com','cai','cfg'].forEach(x=>$('#t-'+x).hidden=x!==t);if(t==='cai')pintarHistorial();pintarAcc();pintarCai();
 }
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
   if(d.tab)irTab(d.tab);
-  else if(d.acc!==undefined){if(tab==='ven')abrirEmitir();else abrirCompra()}
+  else if(d.acc!==undefined){if(tab==='ven')abrirEmitir();else if(tab==='cai')abrirCai();else abrirCompra()}
   else if(d.ver)verFactura(d.ver);else if(d.cam)pedirCambiar(d.cam);else if(d.anu)pedirAnular(d.anu);
   else if(d.emitir!==undefined)emitir();else if(d.cambiar!==undefined)cambiar();else if(d.anular!==undefined)anular();
-  else if(d.guardarCom!==undefined)guardarCompra();else if(d.guardarCfg!==undefined)guardarCfg();
+  else if(d.guardarCom!==undefined)guardarCompra();else if(d.guardarCai!==undefined)guardarCai();else if(d.guardarCfg!==undefined)guardarCfg();
   else if(d.imprimir!==undefined)imprimir();else if(d.cerrar!==undefined)cerrar();
 });
 document.addEventListener('change',e=>{if(e.target.id==='e-v')detalleVenta();if(e.target.id==='f-est')pintarVen()});
 document.addEventListener('input',e=>{if(e.target.id==='f-q')pintarVen()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar()});
 </script>
+<script src="../assets/js/campos.js"></script>
 <script src="../assets/js/nav.js"></script>
 </body>
 </html>

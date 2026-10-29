@@ -34,7 +34,8 @@ public final class DatabaseConnection {
             "/application/db/V7__egresos.sql",
             "/application/db/V8__compra_ligada_a_egreso.sql",
             "/application/db/V9__facturacion_automatica.sql",
-            "/application/db/V10__seguridad.sql"
+            "/application/db/V10__seguridad.sql",
+            "/application/db/V11__historial_cai.sql"
     };
 
     private DatabaseConnection() {

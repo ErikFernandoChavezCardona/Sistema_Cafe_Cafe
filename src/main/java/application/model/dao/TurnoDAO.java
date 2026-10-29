@@ -138,6 +138,24 @@ public class TurnoDAO {
         }
     }
 
+    /** El cierre de un turno YA CERRADO (para reimprimir el reporte), o null si no existe o sigue abierto. */
+    public ResultadoCierre cierre(int idTurno) {
+        String sql = "SELECT t.cierre_en, uc.nombre || ' (' || uc.usuario || ')', t.monto_contado_cent, t.diferencia_cent "
+                + "FROM turnos_caja t LEFT JOIN usuarios uc ON uc.id_usuario = t.id_usuario_cierre "
+                + "WHERE t.id_turno = ? AND t.estado = 'Cerrada'";
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, idTurno);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return null;
+                ResumenTurno r = resumen(c, idTurno);
+                return new ResultadoCierre(r, rs.getInt(3), rs.getInt(4), rs.getString(1), rs.getString(2));
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo leer el cierre del turno", e);
+        }
+    }
+
     /** Un solo SELECT con subconsultas; recibe la conexión para poder usarse dentro del cierre. */
     private ResumenTurno resumen(Connection c, int idTurno) throws SQLException {
         String sql = "SELECT t.apertura_en, u.nombre || ' (' || u.usuario || ')', t.monto_inicial_cent, "
