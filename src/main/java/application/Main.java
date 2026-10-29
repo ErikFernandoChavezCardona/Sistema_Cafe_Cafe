@@ -4,8 +4,11 @@ import application.controller.CajaBridge;
 import application.controller.EgresoBridge;
 import application.controller.FacturaBridge;
 import application.controller.ReporteBridge;
+import application.controller.SeguridadBridge;
 import application.controller.WebBridge;
 import application.model.connection.DatabaseConnection;
+import application.model.connection.Respaldo;
+import application.util.Registro;
 import javafx.application.Application;
 import javafx.concurrent.Worker;
 import javafx.scene.Scene;
@@ -29,10 +32,15 @@ public class Main extends Application {
     private EgresoBridge egresoBridge;
     private FacturaBridge facturaBridge;
     private ReporteBridge reporteBridge;
+    private SeguridadBridge seguridadBridge;
 
     @Override
     public void start(Stage stage) {
+        // Cualquier error que nadie atrape queda anotado en el registro (en vez de perderse)
+        Thread.setDefaultUncaughtExceptionHandler((hilo, error) -> Registro.error("Error no controlado en " + hilo.getName(), error));
+        Registro.limpiarViejos();
         DatabaseConnection.initialize();
+        Respaldo.automaticaSiHaceFalta(12, "Automático al abrir");
 
         WebView view = new WebView();
         view.setContextMenuEnabled(false);
@@ -45,6 +53,7 @@ public class Main extends Application {
         egresoBridge = new EgresoBridge(engine, bridge);
         facturaBridge = new FacturaBridge(engine, bridge);
         reporteBridge = new ReporteBridge(engine, bridge);
+        seguridadBridge = new SeguridadBridge(engine, bridge);
 
         // Cada vez que carga una página, se le entregan los puentes: window.javaApp y
         // window.javaCaja
@@ -59,6 +68,7 @@ public class Main extends Application {
                 window.setMember("javaEgresos", egresoBridge);
                 window.setMember("javaFacturas", facturaBridge);
                 window.setMember("javaReportes", reporteBridge);
+                window.setMember("javaSeguridad", seguridadBridge);
                 engine.executeScript("window.onJavaReady && window.onJavaReady()");
             }
         });
@@ -69,6 +79,12 @@ public class Main extends Application {
         stage.setScene(new Scene(view, 1280, 800));
         stage.setMaximized(true);
         stage.show();
+    }
+
+    /** Al cerrar el programa: una copia de seguridad si pasaron más de 6 horas desde la última. */
+    @Override
+    public void stop() {
+        Respaldo.automaticaSiHaceFalta(6, "Automático al cerrar");
     }
 
     public static void main(String[] args) {

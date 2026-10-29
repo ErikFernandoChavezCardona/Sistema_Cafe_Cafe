@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Respaldos</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<link rel="stylesheet" href="../assets/css/panel.css">
+<style>
+.r{grid-template-columns:2.4fr 1.6fr 1fr 1fr}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a href="insumos.html">Insumos</a>
+  <a href="egresos.html">Egresos</a>
+  <a href="facturas.html">Facturas</a>
+  <a href="reportes.html">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div><p class="eyebrow">Administración</p><h1 class="h">Respaldos</h1></div>
+    <div class="acc"><button class="pill" id="archivo">Restaurar desde archivo…</button><button class="pill fill" id="ahora">Crear copia ahora</button></div>
+  </header>
+  <div class="aviso" id="aviso" hidden>Las copias están solo en esta computadora. Si la computadora falla o se pierde, también se pierden las copias. Elige una carpeta externa (una USB u otro disco).</div>
+  <div class="cards">
+    <div class="card"><span class="eyebrow">Última copia en este equipo</span><b class="n" id="u-loc">—</b></div>
+    <div class="card"><span class="eyebrow">Copia externa</span><b class="n" id="u-ext">Sin configurar</b>
+      <span class="nota" id="carpeta"></span>
+      <div class="acc" style="margin-top:6px"><button class="ab" id="elegir">Elegir carpeta</button><button class="ab" id="quitar" hidden>Quitar</button></div></div>
+  </div>
+  <p class="nota">El sistema hace una copia al abrir y al cerrar el programa (si pasaron varias horas), al cerrar la caja y antes de actualizar la base. Se guardan las últimas 40.</p>
+  <div class="tabla" id="tabla"></div>
+</main>
+
+<div class="fondo" id="m-rest"><div class="modal">
+  <h2 class="h" style="font-size:22px">Restaurar copia</h2>
+  <p id="r-que"></p>
+  <p class="nota">Esto reemplaza TODOS los datos actuales (ventas, productos, usuarios…) por los de la copia. Antes se guarda una copia de lo actual por si te arrepientes. Para escribir "RESTAURAR" confirmas que lo entiendes.</p>
+  <form data-f="rest"><input class="in" id="r-conf" placeholder="Escribe RESTAURAR" autocomplete="off">
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill peligro">Preparar restauración</button></div></form>
+</div></div>
+
+<div class="fondo" id="m-listo"><div class="modal">
+  <h2 class="h" style="font-size:22px">Copia lista</h2>
+  <p>Para aplicarla hay que cerrar el programa y volver a abrirlo. Al abrir, la base se reemplaza por la copia.</p>
+  <div class="btns"><button type="button" class="pill" data-cerrar>Más tarde</button><button class="pill fill peligro" id="salir">Cerrar el programa ahora</button></div>
+</div></div>
+
+<div id="toast" role="alert"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+let tt,huboError=false,aRestaurar=null;
+function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4500)}
+window.mostrarError=m=>{huboError=true;toast(m,true)};
+const call=t=>{try{return JSON.parse(t)}catch(e){return{ok:false}}};
+const tam=b=>b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
+const nombreBonito=n=>n.startsWith('antes-de-actualizar')?'Antes de actualizar':n.startsWith('antes-de-restaurar')?'Antes de restaurar':'Automática / manual';
+
+window.onJavaReady=()=>cargar();
+function cargar(){
+  if(!window.javaSeguridad)return;
+  const d=JSON.parse(javaSeguridad.respaldos());
+  $('#u-loc').textContent=d.ultimaLocal||'Todavía ninguna';
+  $('#u-ext').textContent=d.externa?(d.ultimaExterna||'Todavía ninguna'):'Sin configurar';
+  $('#carpeta').textContent=d.externa||'';
+  $('#quitar').hidden=!d.externa;
+  $('#aviso').hidden=!!d.externa;
+  const c=d.copias||[];
+  $('#tabla').innerHTML='<div class="r th"><span>Archivo</span><span>Fecha</span><span>Tamaño</span><span></span></div>'+
+   (c.length?c.map((x,i)=>`<div class="r"><div><span class="mono">${esc(x.n)}</span><br><small class="nota">${nombreBonito(x.n)}</small></div>
+     <span class="mono">${esc(x.f)}</span><span class="mono">${tam(x.b)}</span><div class="fa"><button class="ab" data-re="${i}">Restaurar</button></div></div>`).join('')
+   :'<p class="empty">Todavía no hay copias</p>');
+  window._copias=c;
+}
+function abrir(id){$('#'+id).classList.add('on');const i=$('#'+id).querySelector('input');if(i)setTimeout(()=>i.focus(),30)}
+function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>{f.classList.remove('on');f.querySelectorAll('form').forEach(x=>x.reset())})}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(!b){if(e.target.classList.contains('fondo'))cerrar();return}
+  huboError=false;
+  if(b.dataset.cerrar!==undefined)cerrar();
+  else if(b.id==='ahora'){b.disabled=true;const r=call(javaSeguridad.respaldarAhora());b.disabled=false;if(r.ok)toast(r.mensaje,r.externoConfigurado&&!r.externoOk);cargar()}
+  else if(b.id==='elegir'){const r=call(javaSeguridad.elegirCarpetaExterna());if(r.ok){toast('Carpeta guardada. Se usará en la próxima copia.');cargar()}}
+  else if(b.id==='quitar'){javaSeguridad.quitarCarpetaExterna();cargar()}
+  else if(b.id==='archivo'){const r=call(javaSeguridad.restaurarDesdeArchivo());if(r.ok)abrir('m-listo')}
+  else if(b.dataset.re!==undefined){aRestaurar=window._copias[+b.dataset.re];$('#r-que').textContent='Copia: '+aRestaurar.n+' ('+aRestaurar.f+')';abrir('m-rest')}
+  else if(b.id==='salir')javaSeguridad.salir();
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  if($('#r-conf').value.trim().toUpperCase()!=='RESTAURAR'){mostrarError('Escribe RESTAURAR para confirmar');return}
+  huboError=false;
+  const r=call(javaSeguridad.restaurarLocal(aRestaurar.n));
+  if(r.ok){cerrar();abrir('m-listo')}
+});
+</script>
+<script src="../assets/js/nav.js"></script>
+</body>
+</html>

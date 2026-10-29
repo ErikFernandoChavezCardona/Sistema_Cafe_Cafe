@@ -193,6 +193,7 @@ const hora=t=>t?t.substring(11,16):'';
 // Convierte lo que escribe el cajero ("55", "55,50") a centavos enteros; null si no es válido
 function aCentavos(txt){const v=parseFloat(String(txt).replace(',','.'));return isNaN(v)||v<0?null:Math.round(v*100)}
 const enJava=()=>!!window.javaCaja;
+let ESADMIN=true;   // solo el administrador anula movimientos (Java lo vuelve a comprobar)
 
 function cargar(){
   if(enJava()){R=JSON.parse(javaCaja.resumenTurno());M=JSON.parse(javaCaja.movimientosTurno())}
@@ -210,7 +211,7 @@ function pintar(){
   $('#movs').innerHTML=M.length?M.map((m,i)=>{
     const signo=m.tipo==='Egreso'?'−':'+';
     const nota=m.an?'Anulado: '+m.mo:(m.tipo==='Venta'?m.x+(m.e?'':' · no suma al efectivo'):(m.tipo==='Egreso'?m.x:m.tipo));
-    const boton=(m.tipo!=='Venta'&&!m.an)?`<button class="anu" data-an="${i}">Anular</button>`:'<span></span>';
+    const boton=(m.tipo!=='Venta'&&!m.an&&ESADMIN)?`<button class="anu" data-an="${i}">Anular</button>`:'<span></span>';
     return `<div class="mv${m.e?'':' no'}${m.an?' anul':''}"><span class="mono hora">${hora(m.h)}</span>
       <div><b>${esc(m.d)}</b><small>${esc(nota)}</small></div>
       <span class="mono ${m.e?(m.tipo==='Egreso'?'neg':'pos'):''}">${signo} ${money(m.m)}</span>${boton}</div>`}).join('')
@@ -220,6 +221,7 @@ function pintar(){
 window.onJavaReady=()=>{
   // Sin caja abierta no hay panel: se va a abrir caja
   if(!javaApp.hayTurnoAbierto()){javaApp.irA('caja.html');return}
+  try{ESADMIN=!!JSON.parse(javaApp.sesion()).admin}catch(e){ESADMIN=false}
   cargar();
 };
 window.addEventListener('load',()=>setTimeout(()=>{if(!window.javaApp)cargar()},400));
@@ -299,7 +301,7 @@ function anularMov(){
     if(r.ok&&r.inv)aviso('Compra revertida en el inventario'+(r.costo?' y costo anterior restaurado':''));
   }
   else{   // demo
-    aAnular.an=true;aAnular.mo=mo;aAnular.ap='Administrador (axel)';aAnular.e=false;
+    aAnular.an=true;aAnular.mo=mo;aAnular.ap='Administrador';aAnular.e=false;
     if(aAnular.tipo==='Egreso'){R.egresos-=aAnular.m;R.esperado+=aAnular.m}else{R.ingresos-=aAnular.m;R.esperado-=aAnular.m}
   }
   if(!huboError){cerrar();cargar()}
@@ -353,5 +355,6 @@ function reporte(r){
   $('#nueva').onclick=()=>{if(window.javaApp)javaApp.irA('caja.html');else location.href='caja.html'};
 }
 </script>
+<script src="../assets/js/nav.js"></script>
 </body>
 </html>

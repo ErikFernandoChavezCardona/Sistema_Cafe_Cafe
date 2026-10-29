@@ -9,7 +9,9 @@ import application.model.entity.LineaFactura;
 import application.model.entity.Proveedor;
 import application.model.entity.Usuario;
 import application.model.entity.VentaSinFactura;
+import application.model.dao.AuditoriaDAO;
 import application.util.Json;
+import application.util.Registro;
 import javafx.concurrent.Worker;
 import javafx.print.PrinterJob;
 import javafx.scene.web.WebEngine;
@@ -75,7 +77,7 @@ public class FacturaBridge {
                     + ",\"problema\":" + Json.texto(problema == null ? "" : problema)
                     + ",\"hoyTotal\":" + h[0] + ",\"hoyIsv\":" + h[1] + ",\"hoyN\":" + h[2] + ",\"sin\":" + h[3] + "}";
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo leer el estado de las facturas");
             return "{}";
         }
@@ -94,7 +96,7 @@ public class FacturaBridge {
             }
             return b.append(']').toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudieron leer las facturas");
             return "[]";
         }
@@ -108,7 +110,7 @@ public class FacturaBridge {
             if (!esAdministrador() && !dao.esDelTurnoAbierto(f.id())) return "{}";
             return json(f, dao.config());
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo abrir la factura");
             return "{}";
         }
@@ -130,7 +132,7 @@ public class FacturaBridge {
             }
             return b.append(']').toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudieron leer las ventas sin factura");
             return "[]";
         }
@@ -159,6 +161,7 @@ public class FacturaBridge {
             if (u == null) return sesionVencida();
             if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("Escribe el nombre del cliente");
             int id = dao.reemitir(entero(idFactura), u.id(), nombre, rtn, !u.esAdministrador());
+            AuditoriaDAO.registrar(u, "Factura reemitida", "N.º " + entero(idFactura) + " → N.º " + id);
             return "{\"ok\":true,\"id\":" + id + "}";
         } catch (Exception e) {
             return fallo(e);
@@ -171,6 +174,7 @@ public class FacturaBridge {
             if (u == null) return sesionVencida();
             if (!u.esAdministrador()) throw new IllegalStateException("Solo el administrador puede anular facturas");
             dao.anular(entero(idFactura), u.id(), motivo);
+            AuditoriaDAO.registrar(u, "Factura anulada", "N.º " + entero(idFactura) + " · " + (motivo == null ? "" : motivo.trim()));
             return OK;
         } catch (Exception e) {
             return fallo(e);
@@ -187,6 +191,8 @@ public class FacturaBridge {
             dao.guardarConfig(new ConfigFactura(txt(cai), entero(desde), entero(hasta), txt(limite), entero(siguiente),
                     txt(prefijo), isvX100, txt(negocio), txt(rtn).replaceAll("\\D", ""), txt(direccion), txt(telefono),
                     txt(email), "1".equals(imprimirAuto)));
+            AuditoriaDAO.registrar(web.usuarioActual(), "Configuración de facturas", "CAI " + txt(cai) + " · rango " + entero(desde)
+                    + "-" + entero(hasta) + " · siguiente " + entero(siguiente) + " · ISV " + isv.trim() + "%");
             return OK;
         } catch (Exception e) {
             return fallo(e);
@@ -208,7 +214,7 @@ public class FacturaBridge {
             }
             return b.append(']').toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudieron leer las facturas de compra");
             return "[]";
         }
@@ -228,7 +234,7 @@ public class FacturaBridge {
             }
             return b.append(']').toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudieron leer los proveedores");
             return "[]";
         }
@@ -266,7 +272,7 @@ public class FacturaBridge {
                         motor.print(job);
                         job.endJob();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Registro.error(e);
                         job.cancelJob();
                         error("No se pudo imprimir");
                     } finally {
@@ -335,7 +341,7 @@ public class FacturaBridge {
 
     /** Los mensajes de las excepciones propias ya están en español y son seguros de mostrar. */
     private String fallo(Exception e) {
-        e.printStackTrace();
+        Registro.error(e);
         if (e instanceof NumberFormatException) error("Revisa los números: alguno no es válido");
         else if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) error(e.getMessage());
         else error("No se pudo completar la operación");

@@ -11,6 +11,7 @@ import application.util.ExcelTabla;
 import application.util.ExcelTabla.Col;
 import application.util.ExcelTabla.Tipo;
 import application.util.Json;
+import application.util.Registro;
 import javafx.application.Platform;
 import javafx.scene.web.WebEngine;
 import javafx.stage.FileChooser;
@@ -314,7 +315,7 @@ public class ReporteBridge {
 
     /** Sin "causa" = mensaje pensado para el administrador; con causa = error técnico, se muestra uno genérico. */
     private void falla(Exception e, String generico) {
-        e.printStackTrace();
+        Registro.error(e);
         error(e instanceof IllegalStateException && e.getCause() == null ? e.getMessage() : generico);
     }
 

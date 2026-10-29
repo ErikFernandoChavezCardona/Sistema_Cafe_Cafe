@@ -6,7 +6,9 @@ import application.model.entity.InsumoAdmin;
 import application.model.entity.MovimientoInsumo;
 import application.model.entity.Proveedor;
 import application.model.entity.Usuario;
+import application.model.dao.AuditoriaDAO;
 import application.util.Json;
+import application.util.Registro;
 import javafx.scene.web.WebEngine;
 
 /**
@@ -50,7 +52,7 @@ public class InsumoBridge {
             }
             return b.append(']').toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudieron leer los insumos");
             return "[]";
         }
@@ -71,7 +73,7 @@ public class InsumoBridge {
             }
             return b.append(']').toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudieron leer los proveedores");
             return "[]";
         }
@@ -119,7 +121,7 @@ public class InsumoBridge {
             InsumoAdmin i = dao.porId(seleccionado);
             return i == null ? "{}" : insumoJson(i);
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo leer el insumo");
             return "{}";
         }
@@ -140,7 +142,7 @@ public class InsumoBridge {
             }
             return b.append(']').toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo leer el historial");
             return "[]";
         }
@@ -161,6 +163,8 @@ public class InsumoBridge {
             int minimo = entero(minimoBase);
             if (minimo < 0) throw new IllegalArgumentException("El stock mínimo no puede ser negativo");
             int nuevo = dao.guardar(entero(id), nombre.trim(), unidad, minimo, entero(idProveedor), "1".equals(activo));
+            AuditoriaDAO.registrar(web.usuarioActual(), entero(id) == 0 ? "Insumo creado" : "Insumo editado",
+                    nombre.trim() + " (" + unidad + ") · mínimo " + minimo + ("1".equals(activo) ? "" : " · inactivo"));
             seleccionado = nuevo;
             return "{\"ok\":true,\"id\":" + nuevo + "}";
         } catch (Exception e) {
@@ -224,7 +228,7 @@ public class InsumoBridge {
 
     /** Los mensajes de las excepciones propias ya están en español y son seguros de mostrar. */
     private String fallo(Exception e) {
-        e.printStackTrace();
+        Registro.error(e);
         if (e instanceof NumberFormatException) error("Los datos no son válidos");
         else if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) error(e.getMessage());
         else error("No se pudo completar la operación");

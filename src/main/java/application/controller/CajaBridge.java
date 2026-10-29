@@ -1,5 +1,7 @@
 package application.controller;
 
+import application.model.connection.Respaldo;
+import application.model.dao.AuditoriaDAO;
 import application.model.dao.EgresoDAO;
 import application.model.dao.IngresoCajaDAO;
 import application.model.dao.TurnoDAO;
@@ -9,6 +11,8 @@ import application.model.entity.ResumenTurno;
 import application.model.entity.Turno;
 import application.model.entity.Usuario;
 import application.util.Json;
+import application.util.Permisos;
+import application.util.Registro;
 import javafx.application.Platform;
 import javafx.print.PrinterJob;
 import javafx.scene.web.WebEngine;
@@ -33,11 +37,12 @@ public class CajaBridge {
     /** JSON con las cifras del turno abierto. Si no hay turno abierto devuelve "{}". */
     public String resumenTurno() {
         try {
+            if (web.usuarioActual() == null) return "{}";
             Turno t = turnoDAO.abierto();
             if (t == null) return "{}";
             return "{" + cifras(turnoDAO.resumen(t.id())) + "}";
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo leer el resumen de la caja");
             return "{}";
         }
@@ -46,11 +51,12 @@ public class CajaBridge {
     /** JSON con la lista de movimientos del turno abierto (lo más reciente primero). */
     public String movimientosTurno() {
         try {
+            if (web.usuarioActual() == null) return "[]";
             Turno t = turnoDAO.abierto();
             if (t == null) return "[]";
             return movimientosJson(t.id());
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudieron leer los movimientos");
             return "[]";
         }
@@ -68,6 +74,10 @@ public class CajaBridge {
                 error("Inicia sesión de nuevo para registrar el egreso");
                 return;
             }
+            if (!Permisos.puede(u, Permisos.Accion.MOVER_EFECTIVO)) {
+                error("No tienes permiso para registrar egresos");
+                return;
+            }
             if (descripcion == null || descripcion.isBlank()) {
                 error("Escribe una descripción");
                 return;
@@ -83,14 +93,15 @@ public class CajaBridge {
                 return;
             }
             egresoDAO.registrar(t.id(), cat, descripcion.trim(), monto, true, u.id());
+            AuditoriaDAO.registrar(u, "Egreso de caja", cat + " · " + descripcion.trim() + " · " + lempiras(monto));
         } catch (NumberFormatException e) {
             error("Escribe un monto válido");
         } catch (IllegalStateException e) {
-            e.printStackTrace();
+            Registro.error(e);
             // Sin causa = mensaje pensado para el cajero (por ejemplo, la caja se cerró)
             error(e.getCause() == null ? e.getMessage() : "No se pudo registrar el egreso");
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo registrar el egreso");
         }
     }
@@ -100,6 +111,15 @@ public class CajaBridge {
             Turno t = turnoDAO.abierto();
             if (t == null) {
                 error("No hay una caja abierta");
+                return;
+            }
+            Usuario u = web.usuarioActual();
+            if (u == null) {
+                error("Inicia sesión de nuevo para registrar el ingreso");
+                return;
+            }
+            if (!Permisos.puede(u, Permisos.Accion.MOVER_EFECTIVO)) {
+                error("No tienes permiso para registrar ingresos");
                 return;
             }
             if (concepto == null || concepto.isBlank()) {
@@ -112,10 +132,11 @@ public class CajaBridge {
                 return;
             }
             ingresoDAO.registrar(t.id(), concepto.trim(), monto);
+            AuditoriaDAO.registrar(u, "Ingreso de caja", concepto.trim() + " · " + lempiras(monto));
         } catch (NumberFormatException e) {
             error("Escribe un monto válido");
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo registrar el ingreso");
         }
     }
@@ -136,6 +157,11 @@ public class CajaBridge {
                 error("Inicia sesión de nuevo para anular");
                 return "{\"ok\":false}";
             }
+            if (!Permisos.puede(u, Permisos.Accion.ANULAR)) {
+                AuditoriaDAO.registrar(u, "Acceso denegado", "Intentó anular un movimiento de caja");
+                error("Solo el administrador puede anular movimientos");
+                return "{\"ok\":false}";
+            }
             if (motivo == null || motivo.isBlank()) {
                 error("Escribe el motivo de la anulación");
                 return "{\"ok\":false}";
@@ -144,6 +170,8 @@ public class CajaBridge {
             boolean revertir = "1".equals(revertirInventario);
             if ("Egreso".equals(tipo)) {
                 boolean costo = egresoDAO.anular(idMovimiento, motivo.trim(), u.id(), revertir);
+                AuditoriaDAO.registrar(u, "Egreso anulado", "N.º " + idMovimiento + " · " + motivo.trim()
+                        + (revertir ? " · también se revirtió el inventario" : ""));
                 return "{\"ok\":true,\"inv\":" + revertir + ",\"costo\":" + costo + "}";
             }
             if ("Ingreso".equals(tipo)) {
@@ -152,6 +180,7 @@ public class CajaBridge {
                     return "{\"ok\":false}";
                 }
                 ingresoDAO.anular(idMovimiento, motivo.trim(), u.id());
+                AuditoriaDAO.registrar(u, "Ingreso anulado", "N.º " + idMovimiento + " · " + motivo.trim());
                 return "{\"ok\":true,\"inv\":false,\"costo\":false}";
             }
             error("Solo se pueden anular ingresos y egresos");
@@ -160,12 +189,12 @@ public class CajaBridge {
             error("No se pudo identificar el movimiento");
             return "{\"ok\":false}";
         } catch (IllegalStateException e) {
-            e.printStackTrace();
+            Registro.error(e);
             // Sin causa = mensaje pensado para el cajero (ya anulado, caja cerrada, stock insuficiente para revertir)
             error(e.getCause() == null ? e.getMessage() : "No se pudo anular el movimiento");
             return "{\"ok\":false}";
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo anular el movimiento");
             return "{\"ok\":false}";
         }
@@ -184,12 +213,20 @@ public class CajaBridge {
                 error("Inicia sesión de nuevo para cerrar la caja");
                 return "{\"ok\":false}";
             }
+            if (!Permisos.puede(u, Permisos.Accion.ABRIR_CERRAR_CAJA)) {
+                error("No tienes permiso para cerrar la caja");
+                return "{\"ok\":false}";
+            }
             int contado = Integer.parseInt(contadoCentavos.trim());
             if (contado < 0) {
                 error("El efectivo contado no puede ser negativo");
                 return "{\"ok\":false}";
             }
             ResultadoCierre r = turnoDAO.cerrar(t.id(), contado, u.id());
+            AuditoriaDAO.registrar(u, "Caja cerrada", "Contado " + lempiras(contado) + " · esperado " + lempiras(r.resumen().esperadoCent())
+                    + " · diferencia " + lempiras(r.diferenciaCent()));
+            // Cierre de caja = momento ideal para una copia de seguridad (si falla, el cierre ya quedó hecho)
+            Respaldo.hacerCopia("Cierre de caja", u);
             return "{\"ok\":true," + cifras(r.resumen())
                     + ",\"cierre\":" + Json.texto(r.cierreEn())
                     + ",\"cerro\":" + Json.texto(r.usuarioCerro())
@@ -200,7 +237,7 @@ public class CajaBridge {
             error("Escribe un monto válido");
             return "{\"ok\":false}";
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo cerrar la caja");
             return "{\"ok\":false}";
         }
@@ -223,7 +260,7 @@ public class CajaBridge {
                     job.endJob();
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Registro.error(e);
                 error("No se pudo imprimir el reporte");
             }
         });
@@ -259,7 +296,7 @@ public class CajaBridge {
         try {
             return movimientosJson(idTurno);
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             return "[]";
         }
     }
@@ -278,6 +315,10 @@ public class CajaBridge {
                 + ",\"ingresos\":" + r.ingresosCent()
                 + ",\"egresos\":" + r.egresosCent()
                 + ",\"esperado\":" + r.esperadoCent();
+    }
+
+    private static String lempiras(int centavos) {
+        return String.format("L %.2f", centavos / 100.0);
     }
 
     private void error(String mensaje) {

@@ -1,5 +1,6 @@
 package application.model.connection;
 
+import application.model.dao.AuditoriaDAO;
 import application.util.AppPaths;
 import org.sqlite.SQLiteConfig;
 
@@ -32,10 +33,16 @@ public final class DatabaseConnection {
             "/application/db/V6__usuario_movimientos_inventario.sql",
             "/application/db/V7__egresos.sql",
             "/application/db/V8__compra_ligada_a_egreso.sql",
-            "/application/db/V9__facturacion_automatica.sql"
+            "/application/db/V9__facturacion_automatica.sql",
+            "/application/db/V10__seguridad.sql"
     };
 
     private DatabaseConnection() {
+    }
+
+    /** Versión más nueva del esquema que este programa entiende. */
+    public static int versionMaxima() {
+        return MIGRACIONES.length;
     }
 
     private static SQLiteConfig config() {
@@ -53,10 +60,21 @@ public final class DatabaseConnection {
 
     /** Se llama una vez al arrancar la app. */
     public static void initialize() {
+        Respaldo.aplicarRestauracionPendiente(); // si se pidió restaurar una copia, se hace antes de abrir la base
         try (Connection c = getConnection()) {
             int actual = versionActual(c);
+            if (actual > MIGRACIONES.length) {
+                throw new IllegalStateException("La base de datos es de una versión más nueva del programa");
+            }
+            // Antes de tocar la estructura de una base con datos, una copia por si algo sale mal
+            if (actual > 0 && actual < MIGRACIONES.length) {
+                Respaldo.copiaAntesDeActualizar(c, actual);
+            }
             for (int i = actual; i < MIGRACIONES.length; i++) {
                 aplicar(c, MIGRACIONES[i], i + 1);
+            }
+            if (Respaldo.restauracionAplicada()) {
+                AuditoriaDAO.registrar((Integer) null, "", "Respaldo restaurado", "La base se reemplazó por una copia de seguridad");
             }
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo iniciar la base de datos", e);

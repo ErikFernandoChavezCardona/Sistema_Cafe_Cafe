@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Usuarios</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<link rel="stylesheet" href="../assets/css/panel.css">
+<style>
+.r{grid-template-columns:1.4fr 1fr .9fr 1.2fr 1.1fr 2.8fr}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a href="insumos.html">Insumos</a>
+  <a href="egresos.html">Egresos</a>
+  <a href="facturas.html">Facturas</a>
+  <a href="reportes.html">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div><p class="eyebrow">Administración</p><h1 class="h">Usuarios</h1></div>
+    <div class="acc"><button class="pill fill" id="nuevo">Nuevo usuario</button></div>
+  </header>
+  <p class="nota">Cajero: vende, abre y cierra la caja y registra ingresos y egresos. Administrador: además anula movimientos y maneja productos, insumos, facturas, reportes, usuarios y respaldos.
+    Tras 5 contraseñas incorrectas seguidas la cuenta se bloquea 5 minutos.</p>
+  <div class="tabla" id="tabla"></div>
+</main>
+
+<div class="fondo" id="m-nuevo"><div class="modal">
+  <h2 class="h" style="font-size:22px">Nuevo usuario</h2>
+  <form data-f="nuevo" autocomplete="off">
+    <div><label class="t" for="n-nom">Nombre de la persona</label><input class="in" id="n-nom" maxlength="60" required></div>
+    <div><label class="t" for="n-usu">Usuario para entrar</label><input class="in" id="n-usu" maxlength="40" autocapitalize="off" required></div>
+    <div><label class="t" for="n-rol">Rol</label><select class="in" id="n-rol"><option>Cajero</option><option>Administrador</option></select></div>
+    <div><label class="t" for="n-cla">Contraseña temporal</label>
+      <div style="display:flex;gap:8px"><input class="in m" id="n-cla" maxlength="100" required><button type="button" class="ab" data-sugerir="n-cla">Sugerir</button></div>
+      <p class="nota" style="margin:6px 0 0 8px">La persona deberá cambiarla al entrar por primera vez. Mínimo 8 caracteres con letras y números.</p></div>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Crear</button></div>
+  </form>
+</div></div>
+
+<div class="fondo" id="m-editar"><div class="modal">
+  <h2 class="h" style="font-size:22px" id="e-tit">Editar usuario</h2>
+  <form data-f="editar" autocomplete="off">
+    <div><label class="t" for="e-nom">Nombre de la persona</label><input class="in" id="e-nom" maxlength="60" required></div>
+    <div><label class="t" for="e-rol">Rol</label><select class="in" id="e-rol"><option>Cajero</option><option>Administrador</option></select></div>
+    <label class="ck"><input type="checkbox" id="e-act"><span>Usuario activo (si lo desactivas ya no puede entrar; su historial se conserva)</span></label>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar</button></div>
+  </form>
+</div></div>
+
+<div class="fondo" id="m-clave"><div class="modal">
+  <h2 class="h" style="font-size:22px" id="c-tit">Contraseña temporal</h2>
+  <form data-f="clave" autocomplete="off">
+    <p class="nota">Escribe una contraseña temporal y entrégasela a la persona. Al entrar tendrá que elegir una propia.</p>
+    <div style="display:flex;gap:8px"><input class="in m" id="c-cla" maxlength="100" required><button type="button" class="ab" data-sugerir="c-cla">Sugerir</button></div>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar</button></div>
+  </form>
+</div></div>
+
+<div id="toast" role="alert"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+let U=[],sel=null,tt;
+function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4000)}
+let huboError=false;
+window.mostrarError=m=>{huboError=true;toast(m,true)};
+const call=(txt)=>{try{return JSON.parse(txt)}catch(e){return{ok:false}}};
+
+window.onJavaReady=()=>cargar();
+function cargar(){
+  if(!window.javaSeguridad)return;
+  U=JSON.parse(javaSeguridad.usuarios());pintar();
+}
+function pintar(){
+  $('#tabla').innerHTML='<div class="r th"><span>Nombre</span><span>Usuario</span><span>Rol</span><span>Último acceso</span><span>Estado</span><span></span></div>'+
+  (U.length?U.map((u,i)=>{
+    const estado=!u.activo?'<span class="b no">Desactivado</span>':u.bloqueado?'<span class="b no">Bloqueado</span>':u.cambiar?'<span class="b ca">Debe cambiar clave</span>':'<span class="b ok">Activo</span>';
+    return `<div class="r${u.activo?'':' off'}"><b>${esc(u.nombre)}</b><span class="mono">${esc(u.usuario)}</span>
+      <span><span class="b ${u.rol==='Administrador'?'ad':'ca'}">${esc(u.rol)}</span></span>
+      <span class="mono">${u.acceso?esc(u.acceso.substring(0,16)):'Nunca'}</span><span>${estado}</span>
+      <div class="fa"><button class="ab" data-ed="${i}">Editar</button><button class="ab" data-cl="${i}">Contraseña</button>${u.bloqueado?`<button class="ab" data-de="${i}">Desbloquear</button>`:''}</div></div>`}).join(''):'<p class="empty">Sin usuarios</p>');
+}
+function abrir(id){const f=$('#'+id);f.classList.add('on');const i=f.querySelector('input');if(i)setTimeout(()=>i.focus(),30)}
+function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>{f.classList.remove('on');f.querySelectorAll('form').forEach(x=>x.reset())})}
+// Contraseña temporal legible (sin 0/O/1/l) con letras y números
+function sugerir(){
+  const L='abcdefghjkmnpqrstuvwxyz',N='23456789',A=L+N+'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const r=n=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n};
+  let s=[L[r(L.length)],N[r(N.length)]];while(s.length<10)s.push(A[r(A.length)]);
+  for(let i=s.length-1;i>0;i--){const j=r(i+1);[s[i],s[j]]=[s[j],s[i]]}
+  return s.join('');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(b){
+    if(b.id==='nuevo')abrir('m-nuevo');
+    else if(b.dataset.cerrar!==undefined)cerrar();
+    else if(b.dataset.sugerir)$('#'+b.dataset.sugerir).value=sugerir();
+    else if(b.dataset.ed!==undefined){sel=U[+b.dataset.ed];$('#e-tit').textContent='Editar · '+sel.usuario;$('#e-nom').value=sel.nombre;$('#e-rol').value=sel.rol;$('#e-act').checked=sel.activo;abrir('m-editar')}
+    else if(b.dataset.cl!==undefined){sel=U[+b.dataset.cl];$('#c-tit').textContent='Contraseña · '+sel.usuario;abrir('m-clave')}
+    else if(b.dataset.de!==undefined){sel=U[+b.dataset.de];huboError=false;const r=call(javaSeguridad.desbloquear(String(sel.id)));if(r.ok){toast('Usuario desbloqueado');cargar()}}
+  }else if(e.target.classList.contains('fondo'))cerrar();
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();huboError=false;
+  const t=e.target.dataset.f;let r;
+  if(t==='nuevo'){
+    r=call(javaSeguridad.crearUsuario($('#n-nom').value,$('#n-usu').value,$('#n-cla').value,$('#n-rol').value));
+    if(r.ok){const u=$('#n-usu').value,c=$('#n-cla').value;cerrar();cargar();toast('Usuario creado. Entrégale: '+u+' / '+c)}
+  }else if(t==='editar'){
+    r=call(javaSeguridad.actualizarUsuario(String(sel.id),$('#e-nom').value,$('#e-rol').value,$('#e-act').checked?'1':'0'));
+    if(r.ok){cerrar();cargar();toast('Cambios guardados')}
+  }else if(t==='clave'){
+    r=call(javaSeguridad.restablecerClave(String(sel.id),$('#c-cla').value));
+    if(r.ok){const c=$('#c-cla').value;cerrar();cargar();toast('Contraseña temporal: '+c)}
+  }
+});
+</script>
+<script src="../assets/js/nav.js"></script>
+</body>
+</html>

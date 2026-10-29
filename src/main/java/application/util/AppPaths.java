@@ -28,6 +28,21 @@ public final class AppPaths {
         return crear(dataDir().resolve("imagenes"));
     }
 
+    /** Copias de seguridad automáticas de la base de datos. */
+    public static Path respaldosDir() {
+        return crear(dataDir().resolve("respaldos"));
+    }
+
+    /** Registro de errores del programa (un archivo por día). */
+    public static Path logsDir() {
+        return crear(dataDir().resolve("logs"));
+    }
+
+    /** Copia lista para reemplazar la base la próxima vez que abra el programa (restauración). */
+    public static Path restauracionPendiente() {
+        return dataDir().resolve("restaurar.pendiente.db");
+    }
+
     private static Path crear(Path dir) {
         try {
             return Files.createDirectories(dir);

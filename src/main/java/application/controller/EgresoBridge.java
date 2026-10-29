@@ -14,7 +14,9 @@ import application.model.entity.ResumenEgresos;
 import application.model.entity.Turno;
 import application.model.entity.Usuario;
 import application.util.ExcelEgresos;
+import application.model.dao.AuditoriaDAO;
 import application.util.Json;
+import application.util.Registro;
 import javafx.application.Platform;
 import javafx.scene.web.WebEngine;
 import javafx.stage.FileChooser;
@@ -152,6 +154,8 @@ public class EgresoBridge {
                 return FALLO;
             }
             egresoDAO.registrar(t == null ? null : t.id(), categoria.trim(), descripcion.trim(), monto, deCaja, u.id());
+            AuditoriaDAO.registrar(u, "Egreso registrado", categoria.trim() + " · " + descripcion.trim() + " · L "
+                    + String.format("%.2f", monto / 100.0) + (deCaja ? " · de la caja" : " · fuera de la caja"));
             return "{\"ok\":true}";
         } catch (NumberFormatException e) {
             error("Escribe un monto válido");
@@ -175,6 +179,8 @@ public class EgresoBridge {
             }
             boolean revertir = "1".equals(revertirInventario);
             boolean costo = egresoDAO.anular(Integer.parseInt(id.trim()), motivo.trim(), web.usuarioActual().id(), revertir);
+            AuditoriaDAO.registrar(web.usuarioActual(), "Egreso anulado", "N.º " + id.trim() + " · " + motivo.trim()
+                    + (revertir ? " · también se revirtió el inventario" : ""));
             return "{\"ok\":true,\"inv\":" + revertir + ",\"costo\":" + costo + "}";
         } catch (NumberFormatException e) {
             error("No se pudo identificar el egreso");
@@ -260,7 +266,7 @@ public class EgresoBridge {
 
     /** Sin "causa" = mensaje pensado para el administrador; con causa = error técnico, se muestra uno genérico. */
     private void falla(Exception e, String generico) {
-        e.printStackTrace();
+        Registro.error(e);
         error(e instanceof IllegalStateException && e.getCause() == null ? e.getMessage() : generico);
     }
 

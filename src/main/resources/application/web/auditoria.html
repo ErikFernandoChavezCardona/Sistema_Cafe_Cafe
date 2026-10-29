@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Auditoría</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<link rel="stylesheet" href="../assets/css/panel.css">
+<style>
+.r{grid-template-columns:1.5fr 1.1fr 1.6fr 4fr}
+.filtros{display:flex;gap:8px;flex-wrap:wrap}
+.filtros .in{width:auto;min-width:200px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a href="insumos.html">Insumos</a>
+  <a href="egresos.html">Egresos</a>
+  <a href="facturas.html">Facturas</a>
+  <a href="reportes.html">Reportes</a>
+</nav>
+
+<main>
+  <header>
+    <div><p class="eyebrow">Administración</p><h1 class="h">Auditoría</h1></div>
+    <div class="filtros"><input class="in" id="q" placeholder="Buscar usuario o detalle…" autocomplete="off"><select class="in" id="a"><option value="">Todas las acciones</option></select></div>
+  </header>
+  <p class="nota">Quién hizo qué y cuándo: inicios de sesión, cierres de caja, anulaciones, cambios de precio y de receta, usuarios y respaldos. Se muestran las últimas 300 entradas.</p>
+  <div class="tabla" id="tabla"></div>
+</main>
+<div id="toast" role="alert"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+let tt,primera=true;
+window.mostrarError=m=>{const t=$('#toast');t.textContent=m;t.className='err';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4000)};
+window.onJavaReady=()=>cargar();
+function cargar(){
+  if(!window.javaSeguridad)return;
+  const d=JSON.parse(javaSeguridad.auditoria($('#q').value.trim(),$('#a').value));
+  if(primera||d.acciones.length!==$('#a').options.length-1){
+    const sel=$('#a').value;
+    $('#a').innerHTML='<option value="">Todas las acciones</option>'+d.acciones.map(x=>`<option${x===sel?' selected':''}>${esc(x)}</option>`).join('');
+    primera=false;
+  }
+  $('#tabla').innerHTML='<div class="r th"><span>Fecha</span><span>Usuario</span><span>Acción</span><span>Detalle</span></div>'+
+   (d.filas.length?d.filas.map(f=>`<div class="r"><span class="mono">${esc(f.f)}</span><span class="mono">${esc(f.u)||'—'}</span><b>${esc(f.a)}</b><span>${esc(f.d)}</span></div>`).join(''):'<p class="empty">Sin registros</p>');
+}
+let dt;
+$('#q').addEventListener('input',()=>{clearTimeout(dt);dt=setTimeout(cargar,250)});
+$('#a').addEventListener('change',cargar);
+</script>
+<script src="../assets/js/nav.js"></script>
+</body>
+</html>

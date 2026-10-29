@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Café Café · Mi cuenta</title>
+<link rel="stylesheet" href="../assets/css/cafe.css">
+<link rel="stylesheet" href="../assets/css/panel.css">
+<style>
+.col{width:min(460px,100%);display:flex;flex-direction:column;gap:12px}
+form{display:flex;flex-direction:column;gap:12px}
+label.t{display:block;font-size:12px;color:var(--suave);margin:0 0 4px 8px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wm">café café</div>
+  <a href="pos.html">Venta</a>
+  <a href="caja_panel.html">Caja</a>
+  <a href="productos.html">Productos</a>
+  <a href="insumos.html">Insumos</a>
+  <a href="egresos.html">Egresos</a>
+  <a href="facturas.html">Facturas</a>
+  <a href="reportes.html">Reportes</a>
+</nav>
+
+<main>
+  <header><div><p class="eyebrow" id="quien">Mi cuenta</p><h1 class="h">Cambiar contraseña</h1></div></header>
+  <div class="aviso" id="forzar" hidden>Tu contraseña es temporal. Elige una propia para poder usar el sistema.</div>
+  <div class="col">
+    <form id="f" autocomplete="off">
+      <div><label class="t" for="a">Contraseña actual</label><input class="in" id="a" type="password" autocomplete="current-password" required></div>
+      <div><label class="t" for="n">Contraseña nueva</label><input class="in" id="n" type="password" autocomplete="new-password" required></div>
+      <div><label class="t" for="n2">Repite la contraseña nueva</label><input class="in" id="n2" type="password" autocomplete="new-password" required></div>
+      <p class="nota">Mínimo 8 caracteres, con letras y números.</p>
+      <button class="pill fill">Cambiar contraseña</button>
+    </form>
+  </div>
+  <section id="rec" class="col" hidden style="margin-top:18px">
+    <h2 class="h" style="font-size:22px">Código de recuperación</h2>
+    <p class="nota">Si el administrador olvida su contraseña, este código permite entrar de nuevo sin internet. Anótalo y guárdalo fuera de la computadora. Al generar uno nuevo, el anterior deja de servir.</p>
+    <button class="pill" id="gen">Generar código nuevo</button>
+  </section>
+</main>
+
+<div class="fondo" id="m-gen"><div class="modal">
+  <h2 class="h" style="font-size:22px">Confirma tu contraseña</h2>
+  <form data-f="gen"><input class="in" id="g-cla" type="password" placeholder="Contraseña actual" autocomplete="current-password" required>
+    <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Generar</button></div></form>
+</div></div>
+<div class="fondo" id="m-cod"><div class="modal">
+  <h2 class="h" style="font-size:22px">Tu código de recuperación</h2>
+  <div class="codigo" id="cod"></div>
+  <p class="nota">Anótalo ahora. No se vuelve a mostrar.</p>
+  <div class="btns"><button type="button" class="pill fill" data-cerrar>Ya lo anoté</button></div>
+</div></div>
+
+<div id="toast" role="alert"></div>
+<script>
+const $=s=>document.querySelector(s);
+let tt,S=null;
+function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4000)}
+window.mostrarError=m=>toast(m,true);
+const call=t=>{try{return JSON.parse(t)}catch(e){return{ok:false}}};
+window.onJavaReady=()=>{
+  S=call(javaApp.sesion());if(!S||!S.usuario)return;
+  $('#quien').textContent=S.nombre+' · '+S.usuario+' · '+S.rol;
+  $('#forzar').hidden=!S.cambiar;
+  $('#rec').hidden=!S.admin||S.cambiar;
+};
+function abrir(id){$('#'+id).classList.add('on');const i=$('#'+id).querySelector('input');if(i)setTimeout(()=>i.focus(),30)}
+function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>{f.classList.remove('on');f.querySelectorAll('form').forEach(x=>x.reset())})}
+$('#f').addEventListener('submit',e=>{
+  e.preventDefault();
+  if($('#n').value!==$('#n2').value){mostrarError('Las contraseñas nuevas no coinciden');return}
+  const r=call(javaApp.cambiarMiClave($('#a').value,$('#n').value));
+  if(!r.ok)return;
+  $('#f').reset();
+  if(S&&S.cambiar){javaApp.continuar()}else toast('Contraseña cambiada');
+});
+$('#gen').addEventListener('click',()=>abrir('m-gen'));
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');
+  if(b&&b.dataset.cerrar!==undefined)cerrar();
+  else if(!b&&e.target.classList.contains('fondo'))cerrar();
+});
+document.querySelector('[data-f=gen]').addEventListener('submit',e=>{
+  e.preventDefault();
+  const r=call(javaApp.nuevoCodigoRecuperacion($('#g-cla').value));
+  if(!r.ok)return;
+  cerrar();$('#cod').textContent=r.codigo;abrir('m-cod');
+});
+</script>
+<script src="../assets/js/nav.js"></script>
+</body>
+</html>

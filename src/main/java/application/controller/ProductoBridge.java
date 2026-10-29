@@ -8,7 +8,9 @@ import application.model.entity.Insumo;
 import application.model.entity.LineaReceta;
 import application.model.entity.ProductoAdmin;
 import application.model.entity.Usuario;
+import application.model.dao.AuditoriaDAO;
 import application.util.Json;
+import application.util.Registro;
 import javafx.scene.web.WebEngine;
 
 import java.util.ArrayList;
@@ -158,8 +160,11 @@ public class ProductoBridge {
             List<int[]> lineas = leerReceta(receta);
             if (lineas == null) return FALLO;
             Integer idProducto = (id == null || id.isBlank()) ? null : Integer.valueOf(id.trim());
+            ProductoAdmin antes = idProducto == null ? null : buscar(idProducto);
+            String recetaAntes = idProducto == null ? "" : resumenReceta(productoDAO.receta(idProducto));
             int nuevo = productoDAO.guardar(idProducto, Integer.parseInt(idCategoria.trim()), limpio, precio,
                     "1".equals(activo), lineas);
+            auditarProducto(antes, nuevo, limpio, precio, "1".equals(activo), recetaAntes, resumenReceta(productoDAO.receta(nuevo)));
             return "{\"ok\":true,\"id\":" + nuevo + "}";
         } catch (NumberFormatException e) {
             error("Revisa los datos del producto");
@@ -174,7 +179,11 @@ public class ProductoBridge {
     public void activarProducto(String id, String activo) {
         if (!permitido()) return;
         try {
-            productoDAO.cambiarActivo(Integer.parseInt(id.trim()), "1".equals(activo));
+            int idp = Integer.parseInt(id.trim());
+            productoDAO.cambiarActivo(idp, "1".equals(activo));
+            ProductoAdmin p = buscar(idp);
+            AuditoriaDAO.registrar(web.usuarioActual(), "1".equals(activo) ? "Producto mostrado" : "Producto oculto",
+                    p == null ? "N.º " + idp : p.nombre());
         } catch (Exception e) {
             falla(e, "No se pudo cambiar el producto");
         }
@@ -249,6 +258,39 @@ public class ProductoBridge {
         return lineas;
     }
 
+    private ProductoAdmin buscar(int id) {
+        for (ProductoAdmin p : productoDAO.todos()) if (p.id() == id) return p;
+        return null;
+    }
+
+    private static String resumenReceta(List<LineaReceta> lineas) {
+        List<String> partes = new ArrayList<>();
+        for (LineaReceta l : lineas) partes.add(l.insumo() + " " + l.cantidad() + l.unidad());
+        java.util.Collections.sort(partes);
+        return String.join(", ", partes);
+    }
+
+    /** Deja en la bitácora qué cambió: precio, nombre, estado o receta (quién y cuándo los pone la bitácora). */
+    private void auditarProducto(ProductoAdmin antes, int id, String nombre, int precio, boolean activo,
+                                 String recetaAntes, String recetaDespues) {
+        if (antes == null) {
+            AuditoriaDAO.registrar(web.usuarioActual(), "Producto creado", nombre + " · " + lempiras(precio));
+            return;
+        }
+        List<String> cambios = new ArrayList<>();
+        if (antes.precioCent() != precio) cambios.add("precio " + lempiras(antes.precioCent()) + " → " + lempiras(precio));
+        if (!antes.nombre().equals(nombre)) cambios.add("nombre \"" + antes.nombre() + "\" → \"" + nombre + "\"");
+        if (antes.activo() != activo) cambios.add(activo ? "ahora visible" : "ahora oculto");
+        if (!recetaAntes.equals(recetaDespues)) cambios.add("receta cambiada");
+        if (!cambios.isEmpty()) {
+            AuditoriaDAO.registrar(web.usuarioActual(), "Producto editado", nombre + ": " + String.join("; ", cambios));
+        }
+    }
+
+    private static String lempiras(int centavos) {
+        return String.format("L %.2f", centavos / 100.0);
+    }
+
     /** Solo el administrador cambia el menú. */
     private boolean permitido() {
         if (esAdministrador()) return true;
@@ -258,7 +300,7 @@ public class ProductoBridge {
 
     /** Sin "causa" = mensaje pensado para el administrador; con causa = error técnico, se muestra uno genérico. */
     private void falla(Exception e, String generico) {
-        e.printStackTrace();
+        Registro.error(e);
         error(e instanceof IllegalStateException && e.getCause() == null ? e.getMessage() : generico);
     }
 

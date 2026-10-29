@@ -6,6 +6,7 @@ import application.model.entity.LineaVenta;
 import application.model.entity.ResultadoCobro;
 import application.model.entity.Usuario;
 import application.util.Json;
+import application.util.Registro;
 import javafx.scene.web.WebEngine;
 
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ public class VentaBridge {
             }
             return b.append(']').toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudieron leer las comandas pendientes");
             return "[]";
         }
@@ -63,7 +64,7 @@ public class VentaBridge {
             }
             return b.append("]}").toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            Registro.error(e);
             error("No se pudo abrir la comanda");
             return "{}";
         }
@@ -139,7 +140,7 @@ public class VentaBridge {
 
     /** Los mensajes de las excepciones propias ya están en español y son seguros de mostrar. */
     private String fallo(Exception e) {
-        e.printStackTrace();
+        Registro.error(e);
         if (e instanceof NumberFormatException) error("Los datos de la venta no son válidos");
         else if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) error(e.getMessage());
         else error("No se pudo completar la operación");
