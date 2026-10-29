@@ -52,8 +52,9 @@ public final class ReporteDAO {
                             Long diferenciaCent, String estado) {
     }
 
-    public record FilaLibro(String fecha, String desde, String hasta, int emitidas, int anuladas, long gravadoCent,
-                            long isvCent, long totalCent) {
+    /** Una factura. Si está anulada, gravado, ISV y total vienen en 0 (no suman) pero la fila se muestra. */
+    public record FilaLibro(String emitida, String numero, String cliente, String rtn, boolean anulada,
+                            long gravadoCent, long isvCent, long totalCent) {
     }
 
     public record Resumen(List<Dia> dias, List<Hora> horas, List<TopProducto> top, List<InsumoBajo> bajos,
@@ -100,12 +101,11 @@ public final class ReporteDAO {
             + "t.monto_contado_cent, t.diferencia_cent, t.estado FROM turnos_caja t JOIN usuarios u ON u.id_usuario = t.id_usuario "
             + "WHERE t.apertura_en >= ? AND t.apertura_en < ? ORDER BY t.apertura_en DESC";
 
-    // El rango de números incluye las anuladas: también gastaron un número del CAI
-    private static final String SQL_LIBRO = "SELECT date(emitida_en), MIN(numero), MAX(numero), "
-            + "SUM(CASE WHEN anulada = 0 THEN 1 ELSE 0 END), SUM(CASE WHEN anulada = 1 THEN 1 ELSE 0 END), "
-            + "SUM(CASE WHEN anulada = 0 THEN subtotal_cent ELSE 0 END), SUM(CASE WHEN anulada = 0 THEN impuesto_cent ELSE 0 END), "
-            + "SUM(CASE WHEN anulada = 0 THEN total_cent ELSE 0 END) "
-            + "FROM facturas_venta WHERE emitida_en >= ? AND emitida_en < ? GROUP BY 1 ORDER BY 1 DESC";
+    // Una fila por factura (las anuladas también salen: gastaron un número del CAI, pero sus montos no suman)
+    private static final String SQL_LIBRO = "SELECT emitida_en, numero, nombre_cliente, rtn_cliente, anulada, "
+            + "CASE WHEN anulada = 0 THEN subtotal_cent ELSE 0 END, CASE WHEN anulada = 0 THEN impuesto_cent ELSE 0 END, "
+            + "CASE WHEN anulada = 0 THEN total_cent ELSE 0 END "
+            + "FROM facturas_venta WHERE emitida_en >= ? AND emitida_en < ? ORDER BY emitida_en ASC, id_factura_venta ASC";
 
     /** Todo lo de la pestaña Resumen en un solo paso. */
     public Resumen resumen(LocalDate desde, LocalDate hasta) {
@@ -171,7 +171,7 @@ public final class ReporteDAO {
                 difTotal += d;
             }
             int anuladas = 0;
-            for (FilaLibro l : libro(c, a, b)) anuladas += l.anuladas();
+            for (FilaLibro l : libro(c, a, b)) if (l.anulada()) anuladas++;
 
             return new Resumen(dias, horas, top, bajos, cerrados, conDif, difTotal, anuladas);
         } catch (SQLException e) {
@@ -240,8 +240,8 @@ public final class ReporteDAO {
             ps.setString(2, b);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    lista.add(new FilaLibro(rs.getString(1), rs.getString(2), rs.getString(3), rs.getInt(4), rs.getInt(5),
-                            rs.getLong(6), rs.getLong(7), rs.getLong(8)));
+                    lista.add(new FilaLibro(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                            rs.getInt(5) == 1, rs.getLong(6), rs.getLong(7), rs.getLong(8)));
                 }
             }
         }

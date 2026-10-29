@@ -142,7 +142,7 @@ public class ReporteBridge {
         }
     }
 
-    /** Pestaña Libro de ventas (ISV): [{"f","d" (primer número),"h" (último número),"n" (emitidas),"a" (anuladas),"g" (gravado),"i" (ISV),"t" (total)}]. */
+    /** Pestaña Libro de ventas (ISV): [{"f" (fecha y hora),"d" (número de factura),"c" (cliente),"r" (RTN),"x" (anulada),"g" (gravado),"i" (ISV),"t" (total)}], una por factura. */
     public String libro(String desde, String hasta) {
         if (!permitido()) return VACIO;
         try {
@@ -153,9 +153,9 @@ public class ReporteBridge {
             for (FilaLibro l : dao.libro(r[0], r[1])) {
                 if (!primero) b.append(',');
                 primero = false;
-                b.append("{\"f\":").append(Json.texto(l.fecha())).append(",\"d\":").append(Json.texto(l.desde()))
-                        .append(",\"h\":").append(Json.texto(l.hasta())).append(",\"n\":").append(l.emitidas())
-                        .append(",\"a\":").append(l.anuladas()).append(",\"g\":").append(l.gravadoCent())
+                b.append("{\"f\":").append(Json.texto(l.emitida())).append(",\"d\":").append(Json.texto(l.numero()))
+                        .append(",\"c\":").append(Json.texto(l.cliente())).append(",\"r\":").append(Json.texto(l.rtn() == null ? "" : l.rtn()))
+                        .append(",\"x\":").append(l.anulada()).append(",\"g\":").append(l.gravadoCent())
                         .append(",\"i\":").append(l.isvCent()).append(",\"t\":").append(l.totalCent()).append('}');
             }
             return b.append(']').toString();
@@ -238,17 +238,21 @@ public class ReporteBridge {
                     hoja = "Libro de ventas";
                     titulo = "Café Café · Libro de ventas (ISV)";
                     archivo = "libro_de_ventas";
-                    cols.add(new Col("Fecha", 14, Tipo.FECHA));
-                    cols.add(new Col("Factura desde", 24, Tipo.TEXTO));
-                    cols.add(new Col("Factura hasta", 24, Tipo.TEXTO));
-                    cols.add(new Col("Emitidas", 12, Tipo.ENTERO, true));
-                    cols.add(new Col("Anuladas", 12, Tipo.ENTERO, true));
+                    cols.add(new Col("Fecha y hora", 20, Tipo.FECHAHORA));
+                    cols.add(new Col("N.º de factura", 24, Tipo.TEXTO));
+                    cols.add(new Col("Cliente", 28, Tipo.TEXTO));
+                    cols.add(new Col("RTN", 18, Tipo.TEXTO));
+                    cols.add(new Col("Estado", 12, Tipo.TEXTO));
                     cols.add(new Col("Gravado", 16, Tipo.DINERO, true));
                     cols.add(new Col("ISV", 16, Tipo.DINERO, true));
                     cols.add(new Col("Total", 16, Tipo.DINERO, true));
+                    int vigentes = 0, anuladas = 0;
                     for (FilaLibro l : dao.libro(r[0], r[1])) {
-                        filas.add(new Object[]{l.fecha(), l.desde(), l.hasta(), l.emitidas(), l.anuladas(), l.gravadoCent(), l.isvCent(), l.totalCent()});
+                        if (l.anulada()) anuladas++; else vigentes++;
+                        filas.add(new Object[]{l.emitida(), l.numero(), l.cliente(), l.rtn(), l.anulada() ? "Anulada" : "Vigente",
+                                l.gravadoCent(), l.isvCent(), l.totalCent()});
                     }
+                    sub += " · " + vigentes + " facturas vigentes, " + anuladas + " anuladas (las anuladas no suman)";
                 }
                 default -> {
                     error("Elige qué reporte exportar");

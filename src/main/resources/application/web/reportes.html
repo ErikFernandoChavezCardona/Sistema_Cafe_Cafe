@@ -58,7 +58,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
 .tabla{border:1px solid var(--linea);border-radius:14px;overflow:hidden}
 .r{display:grid;gap:12px;align-items:center;padding:6px 20px;border-bottom:1px solid var(--linea);min-height:46px}
 .r:last-child{border-bottom:0}
-.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr 1fr}.rl{grid-template-columns:1.1fr 2.4fr .8fr .8fr 1.1fr 1fr 1.1fr}
+.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr 1fr}.rl{grid-template-columns:1.3fr 2fr 1.8fr .9fr 1.1fr 1fr 1.1fr}
 .th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:40px}
 .tr{font-weight:700;background:var(--niebla)}
 .b{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:600}.b.ok{background:var(--niebla);color:var(--prof)}.b.w{background:#F6E8C8;color:#6b5314}.b.ab{background:#EFE6CF;color:#5A4410}
@@ -137,8 +137,8 @@ select.in{appearance:none;width:220px}
   </section>
 
   <section id="t-lib" hidden>
-    <div class="tabla"><div class="r rl th"><span>Fecha</span><span>Facturas (del n.º al n.º)</span><span>Emitidas</span><span>Anuladas</span><span>Gravado</span><span>ISV</span><span>Total</span></div><div id="l-lib"></div>
-      <div class="pie">Resumen diario para tu declaración del ISV. Las facturas anuladas no suman. Los números salen del correlativo del CAI. Confirma con tu contador cómo declarar.</div></div>
+    <div class="tabla"><div class="r rl th"><span>Fecha</span><span>N.º de factura</span><span>Cliente</span><span>Estado</span><span>Gravado</span><span>ISV</span><span>Total</span></div><div id="l-lib"></div>
+      <div class="pie">Una fila por factura, en orden de emisión, con el total de todas al final. Las facturas anuladas se muestran pero no suman. Los números salen del correlativo del CAI. Confirma con tu contador cómo declarar.</div></div>
   </section>
 </main>
 
@@ -233,10 +233,10 @@ function pintarTur(L){
 
 // ---- Libro de ventas ----
 function pintarLib(L){
-  const S=k=>L.reduce((s,x)=>s+x[k],0);
-  $('#l-lib').innerHTML=L.length?L.map(x=>`<div class="r rl"><span>${x.f}</span><span class="mono">${esc(x.d)}${x.d===x.h?'':' → '+esc(x.h)}</span><span class="mono">${x.n}</span><span class="mono">${x.a||'—'}</span>
-    <span class="mono">${money(x.g)}</span><span class="mono">${money(x.i)}</span><span class="mono">${money(x.t)}</span></div>`).join('')
-    +`<div class="r rl tr"><span>Total</span><span></span><span class="mono">${S('n')}</span><span class="mono">${S('a')}</span><span class="mono">${money(S('g'))}</span><span class="mono">${money(S('i'))}</span><span class="mono">${money(S('t'))}</span></div>`
+  const V=L.filter(x=>!x.x),S=k=>V.reduce((s,x)=>s+x[k],0),m=(x,k)=>x.x?'—':money(x[k]);
+  $('#l-lib').innerHTML=L.length?L.map(x=>`<div class="r rl"><span class="mono">${esc(x.f.slice(0,16))}</span><span class="mono">${esc(x.d)}</span><span>${esc(x.c)}${x.r?' · '+esc(x.r):''}</span>
+    <span class="b ${x.x?'w':'ok'}">${x.x?'Anulada':'Vigente'}</span><span class="mono">${m(x,'g')}</span><span class="mono">${m(x,'i')}</span><span class="mono">${m(x,'t')}</span></div>`).join('')
+    +`<div class="r rl tr"><span>Total</span><span class="mono">${V.length} facturas</span><span></span><span class="mono">${L.length-V.length?(L.length-V.length)+' anuladas':''}</span><span class="mono">${money(S('g'))}</span><span class="mono">${money(S('i'))}</span><span class="mono">${money(S('t'))}</span></div>`
     :'<p class="empty">No se emitieron facturas en este período</p>';
 }
 
@@ -253,8 +253,9 @@ function demo(t,rg){
   if(t==='pro')return[['Latte 12 oz','Café Caliente',131,6500,1500],['Frappé Oreo','Frappés',70,11000,3900],['Soda Italiana','Sodas',61,8000,2200],['Cheesecake','Postres',24,9500,null]]
     .map(p=>({n:p[0],c:p[1],q:p[2],m:p[2]*p[3],co:p[4]==null?null:p[2]*p[4]}));
   if(t==='tur')return dias.slice().reverse().map((d,i)=>({id:i+1,ap:d.f+' 07:02:00',cj:i%3?'Mahely':'Carlos',ci:i?d.f+' 20:15:00':null,es:i?5000000:null,co:i?5000000-(i%4?0:500):null,di:i?(i%4?0:-500):null,st:i?'Cerrada':'Abierta'}));
-  let c=52001;return dias.map(d=>{const f=c;c+=d.n+1;const n=p=>'000-001-01-'+String(p).padStart(8,'0'),g=Math.round(d.v*10000/11500);
-    return{f:d.f,d:n(f),h:n(c-1),n:d.n,a:1,g,i:d.v-g,t:d.v}}).reverse();
+  let c=52001;const L=[];dias.forEach((d,k)=>{for(let q=0;q<5;q++){const t=Math.round(d.v/5),g=Math.round(t*10000/11500),x=(k+q)%9===0;
+    L.push({f:d.f+' '+p2(8+q*2)+':15:00',d:'000-001-01-'+String(c++).padStart(8,'0'),c:q%2?'Consumidor final':'Cliente de ejemplo',r:q%2?'':'08011990123456',x,g:x?0:g,i:x?0:t-g,t:x?0:t})}});
+  return L;
 }
 
 // ---- Calendario del rango de fechas (el WebView de JavaFX no trae el de <input type="date">) ----

@@ -36,7 +36,26 @@
     nav.appendChild(out);
     return true;
   }
-  var intentos=0;
-  function probar(){if(aplicar()||++intentos>50)return;setTimeout(probar,100)}
+  // Cierre automático de sesión: si nadie toca el sistema durante INACTIVIDAD_MIN minutos, vuelve al login.
+  var INACTIVIDAD_MIN=15;
+  function vigilarInactividad(){
+    if(!window.javaApp||!javaApp.sesion)return false;
+    var s=null;try{s=JSON.parse(javaApp.sesion())}catch(e){}
+    if(!s)return true;                                   // sin sesión no hay nada que cerrar
+    var ultima=Date.now(),cerrada=false;
+    function actividad(){ultima=Date.now()}
+    ['mousemove','mousedown','keydown','wheel','touchstart','scroll'].forEach(function(ev){document.addEventListener(ev,actividad,true)});
+    setInterval(function(){
+      if(!cerrada&&Date.now()-ultima>=INACTIVIDAD_MIN*60000){cerrada=true;javaApp.cerrarSesion()}
+    },15000);
+    return true;
+  }
+  var intentos=0,menuOk=false,vigiaOk=false;
+  function probar(){
+    if(!menuOk)menuOk=aplicar();
+    if(!vigiaOk)vigiaOk=vigilarInactividad();
+    if((menuOk&&vigiaOk)||++intentos>50)return;
+    setTimeout(probar,100);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',probar);else probar();
 })();
