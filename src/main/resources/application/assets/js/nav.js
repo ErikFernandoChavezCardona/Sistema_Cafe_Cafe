@@ -36,17 +36,18 @@
     nav.appendChild(out);
     return true;
   }
-  // Cierre automático de sesión: si nadie toca el sistema durante INACTIVIDAD_MIN minutos, vuelve al login.
-  var INACTIVIDAD_MIN = 15;
+  // Cierre automático de sesión: si nadie toca el sistema durante varios minutos (según el rol), vuelve al login.
+  var INACTIVIDAD_ADMIN_MIN = 5, INACTIVIDAD_CAJERO_MIN = 10;   // administrador 5 min, cajero 10 min
   function vigilarInactividad() {
     if (!window.javaApp || !javaApp.sesion) return false;
     var s = null; try { s = JSON.parse(javaApp.sesion()) } catch (e) { }
     if (!s) return true;                                   // sin sesión no hay nada que cerrar
+    var limite = (s.admin ? INACTIVIDAD_ADMIN_MIN : INACTIVIDAD_CAJERO_MIN) * 60000;
     var ultima = Date.now(), cerrada = false;
     function actividad() { ultima = Date.now() }
     ['mousemove', 'mousedown', 'keydown', 'wheel', 'touchstart', 'scroll'].forEach(function (ev) { document.addEventListener(ev, actividad, true) });
     setInterval(function () {
-      if (!cerrada && Date.now() - ultima >= INACTIVIDAD_MIN * 60000) { cerrada = true; javaApp.cerrarSesion() }
+      if (!cerrada && Date.now() - ultima >= limite) { cerrada = true; javaApp.cerrarSesion() }
     }, 15000);
     return true;
   }
