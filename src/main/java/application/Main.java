@@ -76,6 +76,12 @@ public class Main extends Application {
         engine.load(WebBridge.pagina("login.html"));
 
         stage.setTitle("Café Café");
+        // Icono de la ventana y de la barra de tareas (el logo del café, en varios tamaños)
+        for (int t : new int[] {16, 32, 48, 64, 128, 256}) {
+            try (java.io.InputStream in = Main.class.getResourceAsStream("/application/assets/img/icono-" + t + ".png")) {
+                if (in != null) stage.getIcons().add(new javafx.scene.image.Image(in));
+            } catch (Exception e) { /* sin icono la app funciona igual */ }
+        }
         stage.setScene(new Scene(view, 1280, 800));
         stage.setMaximized(true);
         stage.show();
