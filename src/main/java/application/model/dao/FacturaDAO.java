@@ -111,6 +111,7 @@ public class FacturaDAO {
             ps.setString(1, String.valueOf(cfg.siguiente() + 1));
             ps.executeUpdate();
         }
+        ClienteDAO.recordar(c, rtnLimpio, cliente);   // cliente frecuente: la próxima vez sale solo
         return id;
     }
 

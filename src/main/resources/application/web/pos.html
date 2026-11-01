@@ -50,6 +50,7 @@ aside input{text-align:center;font-weight:600}
 .pe small{margin-left:8px;color:var(--tinta)}
 .pe.on{background:var(--prof);color:#fff}.pe.on small{color:#fff}
 .pe:active{transform:scale(.97)}
+.sug{display:flex;flex-direction:column;gap:4px}.sug:empty{display:none}.sug button{text-align:left;padding:8px 12px;border-radius:10px;background:var(--niebla);font-size:13px;display:flex;justify-content:space-between;gap:10px}.sug button span{font-family:var(--m);color:var(--suave)}
 .lnk{color:var(--suave);font-size:13px;text-decoration:underline;padding:4px}
 .mo{position:fixed;inset:0;background:rgba(16,34,47,.45);display:grid;place-items:center;z-index:50;animation:fade 150ms ease}
 .mb{background:var(--crema);border-radius:14px;padding:26px;width:min(440px,92vw);display:flex;flex-direction:column;gap:14px;animation:pop 200ms var(--ease)}
@@ -205,6 +206,7 @@ function pintarCobro(){
    ${cliOn?`<div class="fs"><p class="eyebrow">Factura con datos del cliente</p>
      <input class="in" id="cli-n" maxlength="60" autocomplete="off" placeholder="Nombre del cliente" value="${esc(cliNom)}">
      <input class="in m" id="cli-r" data-fmt="rtn" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(cliRtn)}">
+     <div class="sug" id="cli-s"></div>
      <p class="er" id="cli-e"></p><button class="lnk" data-cli="0">Quitar y dejar como Consumidor final</button></div>`
    :`<div class="cf"><span>Factura a <b>Consumidor final</b></span><button class="lnk" data-cli="1">¿Pide factura con RTN?</button></div>`}
    <div class="acc"><button class="pill" data-volver="1">Volver</button><button class="pill fill" id="ok">Confirmar cobro</button></div></div>`;
@@ -253,6 +255,7 @@ function pintarComprobante(){
    ${reemOn?`<div class="fs"><p class="eyebrow">Factura con datos del cliente</p>
      <input class="in" id="re-n" maxlength="60" autocomplete="off" placeholder="Nombre del cliente" value="${esc(reNom)}">
      <input class="in m" id="re-r" data-fmt="rtn" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(reRtn)}">
+     <div class="sug" id="re-s"></div>
      <p class="er" id="re-e"></p>
      <p class="nota" style="font-size:12px;color:var(--suave)">Se anula esta factura y se emite otra con estos datos (consume un número nuevo del CAI).</p>
      <div class="acc"><button class="pill" id="reno">Volver</button><button class="pill fill" id="reok" disabled>Emitir con estos datos</button></div></div>`
@@ -274,13 +277,28 @@ function reemitirFac(){   // el cliente pidió RTN o datos "en el último segund
   aviso('Factura anterior anulada · nueva factura '+facAct.num);
   if(facAct.neg&&facAct.neg.auto)imprimirFac();
 }
+// ---- Clientes frecuentes: sugerencias al escribir nombre o RTN (se guardan solos al facturar con RTN)
+function sugerir(pre,texto){
+  const caja=$('#'+pre+'-s');if(!caja)return;
+  let lista=[];
+  try{if(F().clientes)lista=JSON.parse(F().clientes(texto))}catch(x){}
+  const rtnAct=(pre==='cli'?cliRtn:reRtn).replace(/[\s-]/g,'');
+  const nomAct=pre==='cli'?cliNom:reNom;
+  if(rtnAct.length===14&&!nomAct.trim()&&lista.length===1&&lista[0].r===rtnAct){elegirCliente(pre,lista[0].r,lista[0].n);return}   // RTN completo y conocido: llena el nombre solo
+  caja.innerHTML=lista.filter(c=>c.r!==rtnAct).map(c=>`<button type="button" data-cs="${pre}" data-r="${esc(c.r)}" data-n="${esc(c.n)}">${esc(c.n)}<span>${c.r.replace(/^(\d{4})(\d{4})(\d{6})$/,'$1-$2-$3')}</span></button>`).join('');
+}
+function elegirCliente(pre,r,n){
+  if(pre==='cli'){cliNom=n;cliRtn=r;$('#cli-n').value=n;$('#cli-r').value=r.replace(/^(\d{4})(\d{4})(\d{6})$/,'$1-$2-$3');refrescar()}
+  else{reNom=n;reRtn=r;$('#re-n').value=n;$('#re-r').value=r.replace(/^(\d{4})(\d{4})(\d{6})$/,'$1-$2-$3');$('#reok').disabled=false;$('#re-e').textContent=''}
+  $('#'+pre+'-s').innerHTML='';
+}
 function cerrarCobro(){$('#mo').hidden=true;$('#mo').innerHTML=''}
 document.addEventListener('input',e=>{
-  if(e.target.id==='cli-n'){cliNom=e.target.value;refrescar();return}
-  if(e.target.id==='cli-r'){cliRtn=e.target.value;refrescar();return}
+  if(e.target.id==='cli-n'){cliNom=e.target.value;refrescar();sugerir('cli',e.target.value);return}
+  if(e.target.id==='cli-r'){cliRtn=e.target.value;refrescar();sugerir('cli',e.target.value);return}
   if(e.target.id==='re-n'||e.target.id==='re-r'){
     if(e.target.id==='re-n')reNom=e.target.value;else reRtn=e.target.value;
-    $('#reok').disabled=!(reNom.trim()&&rtnOk(reRtn));$('#re-e').textContent=reRtn&&!rtnOk(reRtn)?'El RTN debe tener 14 dígitos':'';return}
+    $('#reok').disabled=!(reNom.trim()&&rtnOk(reRtn));$('#re-e').textContent=reRtn&&!rtnOk(reRtn)?'El RTN debe tener 14 dígitos':'';sugerir('re',e.target.value);return}
   if(e.target.id!=='rec')return;
   const v=parseFloat(e.target.value.replace(',','.'));recC=isNaN(v)||v<0?0:Math.round(v*100);refrescar();
 });
@@ -319,6 +337,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.met){metodo=b.dataset.met;recC=0;pintarCobro()}
   else if(b.dataset.rap!==undefined){recC=+b.dataset.rap;pintarCobro()}
+  else if(b.dataset.cs){elegirCliente(b.dataset.cs,b.dataset.r,b.dataset.n)}
   else if(b.dataset.cli!==undefined){cliOn=b.dataset.cli==='1';pintarCobro();if(cliOn)$('#cli-n').focus()}
   else if(b.id==='imp')imprimirFac()
   else if(b.id==='otro'){reemOn=true;reNom='';reRtn='';pintarComprobante()}

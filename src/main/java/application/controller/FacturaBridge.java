@@ -1,5 +1,6 @@
 package application.controller;
 
+import application.model.dao.ClienteDAO;
 import application.model.dao.FacturaDAO;
 import application.model.dao.ProveedorDAO;
 import application.model.entity.AutorizacionCai;
@@ -38,6 +39,7 @@ public class FacturaBridge {
     private final WebBridge web; // para saber quién inició sesión
     private final FacturaDAO dao = new FacturaDAO();
     private final ProveedorDAO proveedorDAO = new ProveedorDAO();
+    private final ClienteDAO clienteDAO = new ClienteDAO();
     private WebEngine impresion; // referencia fuerte mientras se imprime (si se pierde, el recolector rompe la impresión)
 
     public FacturaBridge(WebEngine engine, WebBridge web) {
@@ -283,6 +285,70 @@ public class FacturaBridge {
             Registro.error(e);
             error("No se pudieron leer las facturas de compra");
             return "[]";
+        }
+    }
+
+    // ---------- Clientes frecuentes ----------
+
+    /** Sugerencias para la caja (cualquier usuario con sesión): [{"r":"08011990123456","n":"Juan Pérez"}, ...] */
+    public String clientes(String texto) {
+        if (web.usuarioActual() == null) return "[]";
+        try {
+            StringBuilder b = new StringBuilder("[");
+            boolean primero = true;
+            for (ClienteDAO.Cliente c : clienteDAO.buscar(texto)) {
+                if (!primero) b.append(',');
+                primero = false;
+                b.append("{\"r\":").append(Json.texto(c.rtn())).append(",\"n\":").append(Json.texto(c.nombre())).append('}');
+            }
+            return b.append(']').toString();
+        } catch (Exception e) {
+            Registro.error(e);
+            return "[]";
+        }
+    }
+
+    /** Lista completa para la pantalla Facturas › Clientes (solo administrador). */
+    public String listaClientes() {
+        if (!esAdministrador()) return "[]";
+        try {
+            StringBuilder b = new StringBuilder("[");
+            boolean primero = true;
+            for (ClienteDAO.Cliente c : clienteDAO.todos()) {
+                if (!primero) b.append(',');
+                primero = false;
+                b.append("{\"r\":").append(Json.texto(c.rtn())).append(",\"n\":").append(Json.texto(c.nombre()))
+                        .append(",\"v\":").append(c.veces()).append(",\"u\":").append(Json.texto(c.ultimaVez()))
+                        .append(",\"a\":").append(c.activo()).append('}');
+            }
+            return b.append(']').toString();
+        } catch (Exception e) {
+            Registro.error(e);
+            error("No se pudieron leer los clientes");
+            return "[]";
+        }
+    }
+
+    public String renombrarCliente(String rtn, String nombre) {
+        try {
+            if (!esAdministrador()) throw new IllegalStateException("Solo el administrador puede hacer esto");
+            clienteDAO.renombrar(rtn, nombre);
+            AuditoriaDAO.registrar(web.usuarioActual(), "Cliente editado", "RTN " + rtn + " → " + nombre.trim());
+            return OK;
+        } catch (Exception e) {
+            return fallo(e);
+        }
+    }
+
+    /** activo: "1" o "0". Un cliente desactivado deja de sugerirse (se reactiva solo si vuelve a facturarse con su RTN). */
+    public String activarCliente(String rtn, String activo) {
+        try {
+            if (!esAdministrador()) throw new IllegalStateException("Solo el administrador puede hacer esto");
+            clienteDAO.activar(rtn, "1".equals(activo));
+            AuditoriaDAO.registrar(web.usuarioActual(), "1".equals(activo) ? "Cliente activado" : "Cliente desactivado", "RTN " + rtn);
+            return OK;
+        } catch (Exception e) {
+            return fallo(e);
         }
     }
 
