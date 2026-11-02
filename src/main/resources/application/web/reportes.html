@@ -58,7 +58,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
 .tabla{border:1px solid var(--linea);border-radius:14px;overflow:hidden}
 .r{display:grid;gap:12px;align-items:center;padding:6px 20px;border-bottom:1px solid var(--linea);min-height:46px}
 .r:last-child{border-bottom:0}
-.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr 1fr}.rl{grid-template-columns:1.1fr 2.4fr .8fr .8fr 1.1fr 1fr 1.1fr}
+.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr 1fr}.rl{grid-template-columns:1.2fr 1.9fr 1.6fr 1.2fr 1fr .9fr 1fr}.rc{grid-template-columns:.9fr 1.3fr 1.5fr 2fr 1fr}.anu{text-decoration:line-through;opacity:.55}
 .th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:40px}
 .tr{font-weight:700;background:var(--niebla)}
 .b{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:600}.b.ok{background:var(--niebla);color:var(--prof)}.b.w{background:#F6E8C8;color:#6b5314}.b.ab{background:#EFE6CF;color:#5A4410}
@@ -88,7 +88,7 @@ select.in{appearance:none;width:220px}
 <main>
   <header>
     <div><p class="eyebrow">Análisis del negocio</p><h1 class="h">Reportes</h1></div>
-    <button class="pill fill" data-exportar>Exportar a Excel</button>
+    <span style="display:flex;gap:8px"><button class="pill" data-exportar="pdf">Exportar a PDF</button><button class="pill fill" data-exportar="xlsx">Exportar a Excel</button></span>
   </header>
 
   <div class="per">
@@ -105,7 +105,7 @@ select.in{appearance:none;width:220px}
   </div>
   <p class="sub" id="rango-txt"></p>
 
-  <div class="tabs"><button class="tab on" data-tab="res">Resumen</button><button class="tab" data-tab="pro">Productos</button><button class="tab" data-tab="tur">Turnos de caja</button><button class="tab" data-tab="lib">Libro de ventas (ISV)</button></div>
+  <div class="tabs"><button class="tab on" data-tab="res">Resumen</button><button class="tab" data-tab="pro">Productos</button><button class="tab" data-tab="tur">Turnos de caja</button><button class="tab" data-tab="lib">Libro de ventas (ISV)</button><button class="tab" data-tab="com">Facturas de compra</button></div>
 
   <section id="t-res">
     <div class="kpis" style="margin-bottom:14px">
@@ -137,8 +137,13 @@ select.in{appearance:none;width:220px}
   </section>
 
   <section id="t-lib" hidden>
-    <div class="tabla"><div class="r rl th"><span>Fecha</span><span>Facturas (del n.º al n.º)</span><span>Emitidas</span><span>Anuladas</span><span>Gravado</span><span>ISV</span><span>Total</span></div><div id="l-lib"></div>
-      <div class="pie">Resumen diario para tu declaración del ISV. Las facturas anuladas no suman. Los números salen del correlativo del CAI. Confirma con tu contador cómo declarar.</div></div>
+    <div class="tabla"><div class="r rl th"><span>Fecha y hora</span><span>N.º de factura</span><span>Cliente</span><span>RTN</span><span>Gravado</span><span>ISV</span><span>Total</span></div><div id="l-lib"></div>
+      <div class="pie">Una fila por factura. Las anuladas aparecen tachadas y no suman. Confirma con tu contador cómo declarar.</div></div>
+  </section>
+
+  <section id="t-com" hidden>
+    <div class="tabla"><div class="r rc th"><span>Fecha</span><span>Proveedor</span><span>N.º de factura</span><span>Descripción</span><span>Monto</span></div><div id="l-com"></div>
+      <div class="pie">Facturas de proveedores registradas en Facturas → Compras a proveedores. Expórtalas a PDF o Excel para entregarlas al contador junto con las facturas físicas.</div></div>
   </section>
 </main>
 
@@ -171,7 +176,7 @@ function rango(){
 }
 
 // ---- Carga ----
-const FN={res:'resumen',pro:'productos',tur:'turnos',lib:'libro'};
+const FN={res:'resumen',pro:'productos',tur:'turnos',lib:'libro',com:'compras'};
 function cargar(){
   const rg=rango();if(!rg)return;
   if(rg[0]>rg[1]){mostrarError('La fecha inicial no puede ser mayor que la final');return}
@@ -181,7 +186,7 @@ function cargar(){
   const n=Math.round((parseYmd(rg[1])-parseYmd(rg[0]))/864e5)+1;
   $('#rango-txt').textContent='Del '+rg[0]+' al '+rg[1]+' · '+n+' día'+(n===1?'':'s');
   if(!CACHE[tab])CACHE[tab]=enJava()?JSON.parse(javaReportes[FN[tab]](rg[0],rg[1])):demo(tab,rg);
-  ({res:pintarRes,pro:pintarPro,tur:pintarTur,lib:pintarLib})[tab](CACHE[tab]);
+  ({res:pintarRes,pro:pintarPro,tur:pintarTur,lib:pintarLib,com:pintarCom})[tab](CACHE[tab]);
 }
 
 // ---- Resumen ----
@@ -233,11 +238,18 @@ function pintarTur(L){
 
 // ---- Libro de ventas ----
 function pintarLib(L){
-  const S=k=>L.reduce((s,x)=>s+x[k],0);
-  $('#l-lib').innerHTML=L.length?L.map(x=>`<div class="r rl"><span>${x.f}</span><span class="mono">${esc(x.d)}${x.d===x.h?'':' → '+esc(x.h)}</span><span class="mono">${x.n}</span><span class="mono">${x.a||'—'}</span>
+  const V=L.filter(x=>!x.x),S=k=>V.reduce((s,x)=>s+x[k],0);
+  $('#l-lib').innerHTML=L.length?L.map(x=>`<div class="r rl${x.x?' anu':''}"><span class="mono">${esc(x.f)}</span><span class="mono">${esc(x.d)}${x.x?' (anulada)':''}</span><span>${esc(x.c)}</span><span class="mono">${esc(x.r)||'—'}</span>
     <span class="mono">${money(x.g)}</span><span class="mono">${money(x.i)}</span><span class="mono">${money(x.t)}</span></div>`).join('')
-    +`<div class="r rl tr"><span>Total</span><span></span><span class="mono">${S('n')}</span><span class="mono">${S('a')}</span><span class="mono">${money(S('g'))}</span><span class="mono">${money(S('i'))}</span><span class="mono">${money(S('t'))}</span></div>`
+    +`<div class="r rl tr"><span>Total (${V.length} facturas)</span><span></span><span></span><span></span><span class="mono">${money(S('g'))}</span><span class="mono">${money(S('i'))}</span><span class="mono">${money(S('t'))}</span></div>`
     :'<p class="empty">No se emitieron facturas en este período</p>';
+}
+
+// ---- Facturas de compra (proveedores) ----
+function pintarCom(L){
+  $('#l-com').innerHTML=L.length?L.map(x=>`<div class="r rc"><span class="mono">${esc(x.f)}</span><b>${esc(x.p)}</b><span class="mono">${esc(x.n)}</span><span>${esc(x.d)||'—'}</span><span class="mono">${money(x.t)}</span></div>`).join('')
+    +`<div class="r rc tr"><span>Total (${L.length} facturas)</span><span></span><span></span><span></span><span class="mono">${money(L.reduce((s,x)=>s+x.t,0))}</span></div>`
+    :'<p class="empty">No hay facturas de compra en este período</p>';
 }
 
 // ---- Datos de ejemplo: solo se usan al abrir el archivo en el navegador (sin Java), para diseñar ----
@@ -253,8 +265,8 @@ function demo(t,rg){
   if(t==='pro')return[['Latte 12 oz','Café Caliente',131,6500,1500],['Frappé Oreo','Frappés',70,11000,3900],['Soda Italiana','Sodas',61,8000,2200],['Cheesecake','Postres',24,9500,null]]
     .map(p=>({n:p[0],c:p[1],q:p[2],m:p[2]*p[3],co:p[4]==null?null:p[2]*p[4]}));
   if(t==='tur')return dias.slice().reverse().map((d,i)=>({id:i+1,ap:d.f+' 07:02:00',cj:i%3?'Mahely':'Carlos',ci:i?d.f+' 20:15:00':null,es:i?5000000:null,co:i?5000000-(i%4?0:500):null,di:i?(i%4?0:-500):null,st:i?'Cerrada':'Abierta'}));
-  let c=52001;return dias.map(d=>{const f=c;c+=d.n+1;const n=p=>'000-001-01-'+String(p).padStart(8,'0'),g=Math.round(d.v*10000/11500);
-    return{f:d.f,d:n(f),h:n(c-1),n:d.n,a:1,g,i:d.v-g,t:d.v}}).reverse();
+  if(t==='com')return[{f:rg[0],p:'Lácteos',n:'001-002-01-00004512',d:'Leche entera',t:320000},{f:rg[1],p:'Bodega Central',n:'001-001-01-00012345',d:'Café y vasos',t:845050}];
+  return dias.map((d,k)=>{const g=Math.round(d.v*10000/11500);return{f:d.f+' 12:00:00',d:'000-001-01-'+String(52001+k).padStart(8,'0'),c:'Consumidor Final',r:'',x:false,g,i:d.v-g,t:d.v}}).reverse();
 }
 
 // ---- Calendario del rango de fechas (el WebView de JavaFX no trae el de <input type="date">) ----
@@ -328,11 +340,11 @@ document.addEventListener('click',e=>{
     cargar();
   }else if(d.tab){
     tab=d.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
-    ['res','pro','tur','lib'].forEach(t=>$('#t-'+t).hidden=t!==tab);cargar();
+    ['res','pro','tur','lib','com'].forEach(t=>$('#t-'+t).hidden=t!==tab);cargar();
   }else if(d.exportar!==undefined){
     const rg=rango();if(!rg){mostrarError('Escribe las dos fechas (AAAA-MM-DD)');return}
     if(!enJava()){toast('Modo diseño (sin Java): no se exporta',false);return}
-    javaReportes.exportarExcel(rg[0],rg[1],tab,tab==='pro'?cat:'');
+    javaReportes.exportar(rg[0],rg[1],tab,tab==='pro'?cat:'',d.exportar||'xlsx');
   }
 });
 document.addEventListener('change',e=>{

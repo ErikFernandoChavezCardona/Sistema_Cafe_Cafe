@@ -2,6 +2,7 @@ package application.controller;
 
 import application.model.dao.ReporteDAO;
 import application.model.dao.ReporteDAO.Dia;
+import application.model.dao.ReporteDAO.FilaCompra;
 import application.model.dao.ReporteDAO.FilaLibro;
 import application.model.dao.ReporteDAO.FilaProducto;
 import application.model.dao.ReporteDAO.FilaTurno;
@@ -11,6 +12,7 @@ import application.util.ExcelTabla;
 import application.util.ExcelTabla.Col;
 import application.util.ExcelTabla.Tipo;
 import application.util.Json;
+import application.util.PdfTabla;
 import application.util.Registro;
 import javafx.application.Platform;
 import javafx.scene.web.WebEngine;
@@ -165,11 +167,38 @@ public class ReporteBridge {
         }
     }
 
+    /** Pestaña Compras a proveedores: [{"f" (fecha),"p" (proveedor),"n" (n.º de factura),"d" (descripción),"t" (total)}]. */
+    public String compras(String desde, String hasta) {
+        if (!permitido()) return VACIO;
+        try {
+            LocalDate[] r = leerRango(desde, hasta);
+            if (r == null) return VACIO;
+            StringBuilder b = new StringBuilder("[");
+            boolean primero = true;
+            for (FilaCompra c : dao.compras(r[0], r[1])) {
+                if (!primero) b.append(',');
+                primero = false;
+                b.append("{\"f\":").append(Json.texto(c.fecha())).append(",\"p\":").append(Json.texto(c.proveedor()))
+                        .append(",\"n\":").append(Json.texto(c.numero())).append(",\"d\":").append(Json.texto(c.nota()))
+                        .append(",\"t\":").append(c.totalCent()).append('}');
+            }
+            return b.append(']').toString();
+        } catch (Exception e) {
+            falla(e, "No se pudieron leer las facturas de compra");
+            return VACIO;
+        }
+    }
+
     /**
      * Guarda en un archivo de Excel (.xlsx, con tabla) la pestaña que se está viendo: "res", "pro", "tur" o "lib".
      * El administrador elige dónde guardarlo. categoria solo se usa en "pro" (vacío = todas).
      */
     public void exportarExcel(String desde, String hasta, String pestana, String categoria) {
+        exportar(desde, hasta, pestana, categoria, "xlsx");
+    }
+
+    /** Igual que exportarExcel pero con formato: "xlsx" (Excel) o "pdf" (documento formal, sin decoración). */
+    public void exportar(String desde, String hasta, String pestana, String categoria, String formato) {
         if (!permitido()) return;
         try {
             LocalDate[] r = leerRango(desde, hasta);
@@ -254,6 +283,20 @@ public class ReporteBridge {
                     }
                     sub += " · " + vigentes + " facturas vigentes, " + anuladas + " anuladas (las anuladas no suman)";
                 }
+                case "com" -> {
+                    hoja = "Compras a proveedores";
+                    titulo = "Café Café · Facturas de compra a proveedores";
+                    archivo = "facturas_de_compra";
+                    cols.add(new Col("Fecha", 14, Tipo.FECHA));
+                    cols.add(new Col("Proveedor", 26, Tipo.TEXTO));
+                    cols.add(new Col("N.º de factura", 24, Tipo.TEXTO));
+                    cols.add(new Col("Descripción", 36, Tipo.TEXTO));
+                    cols.add(new Col("Monto", 16, Tipo.DINERO, true));
+                    for (FilaCompra c : dao.compras(r[0], r[1])) {
+                        filas.add(new Object[]{c.fecha(), c.proveedor(), c.numero(), c.nota(), c.totalCent()});
+                    }
+                    sub += " · " + filas.size() + " facturas de proveedores";
+                }
                 default -> {
                     error("Elige qué reporte exportar");
                     return;
@@ -263,20 +306,21 @@ public class ReporteBridge {
                 error("No hay datos para exportar en este período");
                 return;
             }
-            byte[] contenido = ExcelTabla.generar(hoja, titulo, sub, cols, filas);
-            String nombre = archivo + "_" + r[0] + "_a_" + r[1] + ".xlsx";
+            boolean pdf = "pdf".equalsIgnoreCase(formato);
+            byte[] contenido = pdf ? PdfTabla.generar(titulo, sub, cols, filas) : ExcelTabla.generar(hoja, titulo, sub, cols, filas);
+            String nombre = archivo + "_" + r[0] + "_a_" + r[1] + (pdf ? ".pdf" : ".xlsx");
             Platform.runLater(() -> {
                 try {
                     FileChooser fc = new FileChooser();
                     fc.setTitle("Guardar reporte");
                     fc.setInitialFileName(nombre);
-                    fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Libro de Excel", "*.xlsx"));
+                    fc.getExtensionFilters().add(pdf ? new FileChooser.ExtensionFilter("Documento PDF", "*.pdf") : new FileChooser.ExtensionFilter("Libro de Excel", "*.xlsx"));
                     File destino = fc.showSaveDialog(null);
                     if (destino == null) return; // el administrador canceló
                     Files.write(destino.toPath(), contenido);
                     avisar("Archivo guardado: " + destino.getName());
                 } catch (Exception e) {
-                    falla(e, "No se pudo guardar el archivo (¿está abierto en Excel?)");
+                    falla(e, "No se pudo guardar el archivo (¿está abierto en otro programa?)");
                 }
             });
         } catch (Exception e) {

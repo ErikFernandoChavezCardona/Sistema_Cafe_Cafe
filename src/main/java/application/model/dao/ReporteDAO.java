@@ -57,6 +57,10 @@ public final class ReporteDAO {
                             long gravadoCent, long isvCent, long totalCent) {
     }
 
+    /** Factura que entregó un proveedor (compra de insumos). */
+    public record FilaCompra(String fecha, String proveedor, String numero, String nota, long totalCent) {
+    }
+
     public record Resumen(List<Dia> dias, List<Hora> horas, List<TopProducto> top, List<InsumoBajo> bajos,
                           int turnosCerrados, int turnosConDiferencia, long diferenciaCent, int facturasAnuladas) {
     }
@@ -208,6 +212,24 @@ public final class ReporteDAO {
         } catch (SQLException e) {
             throw new IllegalStateException("No se pudieron leer los turnos de caja", e);
         }
+    }
+
+    /** Facturas de proveedores con fecha dentro del período, de la más antigua a la más reciente. */
+    public List<FilaCompra> compras(LocalDate desde, LocalDate hasta) {
+        String sql = "SELECT fc.fecha, p.nombre, fc.numero, COALESCE(fc.nota, ''), fc.total_cent "
+                + "FROM facturas_compra fc JOIN proveedores p ON p.id_proveedor = fc.id_proveedor "
+                + "WHERE fc.fecha >= ? AND fc.fecha <= ? ORDER BY fc.fecha, fc.id_factura_compra";
+        List<FilaCompra> lista = new ArrayList<>();
+        try (Connection c = DatabaseConnection.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, desde.toString());
+            ps.setString(2, hasta.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) lista.add(new FilaCompra(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getLong(5)));
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudieron leer las facturas de compra", e);
+        }
+        return lista;
     }
 
     public List<FilaLibro> libro(LocalDate desde, LocalDate hasta) {
