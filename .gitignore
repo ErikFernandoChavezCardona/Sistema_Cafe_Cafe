@@ -4,3 +4,5 @@ target/
 *.db-shm
 .idea/
 .vscode/
+tools/
+instalador/
