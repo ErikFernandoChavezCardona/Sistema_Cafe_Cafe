@@ -197,7 +197,7 @@ public final class PdfTabla {
             else if (c < 127) b.append(c);
             else {
                 byte[] x = String.valueOf(c).getBytes(WIN);
-                b.append((char) (x[0] & 0xFF));
+                b.append(String.format("\\%03o", x[0] & 0xFF));   // octal: así también salen — “ ” • € …
             }
         }
         return b.toString();

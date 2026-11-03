@@ -58,7 +58,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
 .tabla{border:1px solid var(--linea);border-radius:14px;overflow:hidden}
 .r{display:grid;gap:12px;align-items:center;padding:6px 20px;border-bottom:1px solid var(--linea);min-height:46px}
 .r:last-child{border-bottom:0}
-.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr 1fr}.rl{grid-template-columns:1.2fr 1.9fr 1.6fr 1.2fr 1fr .9fr 1fr}.rc{grid-template-columns:.9fr 1.3fr 1.5fr 2fr 1fr}.anu{text-decoration:line-through;opacity:.55}
+.rp{grid-template-columns:2fr 1.3fr .8fr 1.1fr 1.1fr 1.6fr}.rt{grid-template-columns:1.1fr 1fr 1fr 1fr 1.1fr 1.1fr 1.1fr 1.2fr 1fr}.rl{grid-template-columns:1.2fr 1.9fr 1.6fr 1.2fr 1fr .9fr 1fr}.rc{grid-template-columns:.9fr 1.3fr 1.1fr 1.5fr 1.6fr 1fr}.anu{text-decoration:line-through;opacity:.55}
 .th{color:var(--suave);font-size:12px;letter-spacing:.12em;text-transform:uppercase;min-height:40px}
 .tr{font-weight:700;background:var(--niebla)}
 .b{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:600}.b.ok{background:var(--niebla);color:var(--prof)}.b.w{background:#F6E8C8;color:#6b5314}.b.ab{background:#EFE6CF;color:#5A4410}
@@ -142,7 +142,7 @@ select.in{appearance:none;width:220px}
   </section>
 
   <section id="t-com" hidden>
-    <div class="tabla"><div class="r rc th"><span>Fecha</span><span>Proveedor</span><span>N.º de factura</span><span>Descripción</span><span>Monto</span></div><div id="l-com"></div>
+    <div class="tabla"><div class="r rc th"><span>Fecha</span><span>Proveedor</span><span>RTN</span><span>N.º de factura</span><span>Descripción</span><span>Monto</span></div><div id="l-com"></div>
       <div class="pie">Facturas de proveedores registradas en Facturas → Compras a proveedores. Expórtalas a PDF o Excel para entregarlas al contador junto con las facturas físicas.</div></div>
   </section>
 </main>
@@ -247,8 +247,8 @@ function pintarLib(L){
 
 // ---- Facturas de compra (proveedores) ----
 function pintarCom(L){
-  $('#l-com').innerHTML=L.length?L.map(x=>`<div class="r rc"><span class="mono">${esc(x.f)}</span><b>${esc(x.p)}</b><span class="mono">${esc(x.n)}</span><span>${esc(x.d)||'—'}</span><span class="mono">${money(x.t)}</span></div>`).join('')
-    +`<div class="r rc tr"><span>Total (${L.length} facturas)</span><span></span><span></span><span></span><span class="mono">${money(L.reduce((s,x)=>s+x.t,0))}</span></div>`
+  $('#l-com').innerHTML=L.length?L.map(x=>`<div class="r rc"><span class="mono">${esc(x.f)}</span><b>${esc(x.p)}</b><span class="mono">${esc(x.r)||'—'}</span><span class="mono">${esc(x.n)}</span><span>${esc(x.d)||'—'}</span><span class="mono">${money(x.t)}</span></div>`).join('')
+    +`<div class="r rc tr"><span>Total (${L.length} facturas)</span><span></span><span></span><span></span><span></span><span class="mono">${money(L.reduce((s,x)=>s+x.t,0))}</span></div>`
     :'<p class="empty">No hay facturas de compra en este período</p>';
 }
 
@@ -265,7 +265,7 @@ function demo(t,rg){
   if(t==='pro')return[['Latte 12 oz','Café Caliente',131,6500,1500],['Frappé Oreo','Frappés',70,11000,3900],['Soda Italiana','Sodas',61,8000,2200],['Cheesecake','Postres',24,9500,null]]
     .map(p=>({n:p[0],c:p[1],q:p[2],m:p[2]*p[3],co:p[4]==null?null:p[2]*p[4]}));
   if(t==='tur')return dias.slice().reverse().map((d,i)=>({id:i+1,ap:d.f+' 07:02:00',cj:i%3?'Mahely':'Carlos',ci:i?d.f+' 20:15:00':null,es:i?5000000:null,co:i?5000000-(i%4?0:500):null,di:i?(i%4?0:-500):null,st:i?'Cerrada':'Abierta'}));
-  if(t==='com')return[{f:rg[0],p:'Lácteos',n:'001-002-01-00004512',d:'Leche entera',t:320000},{f:rg[1],p:'Bodega Central',n:'001-001-01-00012345',d:'Café y vasos',t:845050}];
+  if(t==='com')return[{f:rg[0],p:'Lácteos',r:'08011990123456',n:'001-002-01-00004512',d:'Leche entera',t:320000},{f:rg[1],p:'Bodega Central',r:'05011985654321',n:'001-001-01-00012345',d:'Café y vasos',t:845050}];
   return dias.map((d,k)=>{const g=Math.round(d.v*10000/11500);return{f:d.f+' 12:00:00',d:'000-001-01-'+String(52001+k).padStart(8,'0'),c:'Consumidor Final',r:'',x:false,g,i:d.v-g,t:d.v}}).reverse();
 }
 

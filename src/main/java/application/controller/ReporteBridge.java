@@ -179,7 +179,7 @@ public class ReporteBridge {
                 if (!primero) b.append(',');
                 primero = false;
                 b.append("{\"f\":").append(Json.texto(c.fecha())).append(",\"p\":").append(Json.texto(c.proveedor()))
-                        .append(",\"n\":").append(Json.texto(c.numero())).append(",\"d\":").append(Json.texto(c.nota()))
+                        .append(",\"r\":").append(Json.texto(c.rtn())).append(",\"n\":").append(Json.texto(c.numero())).append(",\"d\":").append(Json.texto(c.nota()))
                         .append(",\"t\":").append(c.totalCent()).append('}');
             }
             return b.append(']').toString();
@@ -288,12 +288,13 @@ public class ReporteBridge {
                     titulo = "Café Café · Facturas de compra a proveedores";
                     archivo = "facturas_de_compra";
                     cols.add(new Col("Fecha", 14, Tipo.FECHA));
-                    cols.add(new Col("Proveedor", 26, Tipo.TEXTO));
+                    cols.add(new Col("Proveedor", 30, Tipo.TEXTO));
+                    cols.add(new Col("RTN del proveedor", 20, Tipo.TEXTO));
                     cols.add(new Col("N.º de factura", 24, Tipo.TEXTO));
-                    cols.add(new Col("Descripción", 36, Tipo.TEXTO));
+                    cols.add(new Col("Descripción", 30, Tipo.TEXTO));
                     cols.add(new Col("Monto", 16, Tipo.DINERO, true));
                     for (FilaCompra c : dao.compras(r[0], r[1])) {
-                        filas.add(new Object[]{c.fecha(), c.proveedor(), c.numero(), c.nota(), c.totalCent()});
+                        filas.add(new Object[]{c.fecha(), c.proveedor(), c.rtn().isEmpty() ? "-" : c.rtn(), c.numero(), c.nota(), c.totalCent()});
                     }
                     sub += " · " + filas.size() + " facturas de proveedores";
                 }
