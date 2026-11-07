@@ -111,6 +111,10 @@ select.in{appearance:none}
   </section>
 
   <section id="t-cfg" hidden>
+    <div class="card" style="gap:6px;margin-bottom:14px"><span class="eyebrow">Modo sin factura</span>
+      <label class="chk"><input type="checkbox" id="c-sf"><span>Cobrar sin emitir factura (comprobante interno)</span></label>
+      <p class="nota">Úsalo mientras no haya CAI vigente o durante las pruebas. Las ventas, la caja, el inventario y los reportes funcionan igual, pero no se crean facturas ni se gastan números. Cuando tengas el CAI, apaga esta opción.</p>
+    </div>
     <div class="grid2">
       <div class="card" style="gap:10px"><span class="eyebrow">CAI vigente (solo lectura)</span>
         <div><label class="t nota">CAI</label><input class="in m" id="c-cai" disabled></div>
@@ -195,7 +199,8 @@ window.mostrarError=m=>toast(m,true);
 const dias=()=>E.dias||0;
 function pintarCai(){
   const bad=!!E.problema,warn=!bad&&(E.rest<=50||E.dias<=30),tot=Math.max(E.hasta-E.desde+1,1),usado=Math.max(0,Math.min(100,(E.sig-E.desde)*100/tot));
-  $('#cai').className='cai '+(bad?'bad':warn?'warn':'');
+  $('#cai').className='cai '+(E.sinFac?'warn':bad?'bad':warn?'warn':'');
+  if(E.sinFac){$('#cai').innerHTML='<div><b>Modo sin factura activo</b><br><span class="nota">El punto de venta cobra sin emitir facturas: queda un comprobante interno. Se apaga en Configuración.</span></div>';$('#b-acc').disabled=tab==='ven'&&bad;return}
   $('#cai').innerHTML=bad?`<div><b>${esc(E.problema)}</b><br><span class="nota">Mientras no se resuelva, el punto de venta no puede cobrar.</span></div>`
    :`<div><b>CAI vigente</b><br><span class="nota">Quedan <b>${E.rest}</b> facturas del rango · vence en <b>${dias()}</b> días (${esc(E.limite)}) · siguiente: <span class="mono">${esc(E.numSig)}</span></span></div><div class="barra" title="Rango usado"><span style="width:${usado}%"></span></div>`;
   $('#b-acc').disabled=tab==='ven'&&bad;
@@ -231,7 +236,7 @@ function pintarCom(){
 }
 function pintarCfg(){
   $('#c-cai').value=E.cai||'';$('#c-d').value=E.desde||'';$('#c-h').value=E.hasta||'';$('#c-l').value=E.limite||'';$('#c-s').value=E.sig||'';$('#c-p').value=E.pref||'';
-  $('#c-n').value=E.neg||'';$('#c-r').value=E.rtn||'';$('#c-t').value=E.tel||'';$('#c-di').value=E.dir||'';$('#c-e').value=E.mail||'';$('#c-i').value=(E.isv||0)/100;$('#c-a').checked=!!E.auto;
+  $('#c-n').value=E.neg||'';$('#c-r').value=E.rtn||'';$('#c-t').value=E.tel||'';$('#c-di').value=E.dir||'';$('#c-e').value=E.mail||'';$('#c-i').value=(E.isv||0)/100;$('#c-a').checked=!!E.auto;$('#c-sf').checked=!!E.sinFac;
 }
 
 let tt;function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4000)}
@@ -368,7 +373,7 @@ document.addEventListener('click',e=>{
   else if(d.guardarCom!==undefined)guardarCompra();else if(d.guardarCai!==undefined)guardarCai();else if(d.guardarCfg!==undefined)guardarCfg();
   else if(d.imprimir!==undefined)imprimir();else if(d.cerrar!==undefined)cerrar();
 });
-document.addEventListener('change',e=>{if(e.target.id==='e-v')detalleVenta();if(e.target.id==='f-est')pintarVen()});
+document.addEventListener('change',e=>{if(e.target.id==='c-sf'){const r=J(B().modoSinFactura(e.target.checked?'1':'0'));if(!r.ok){e.target.checked=!e.target.checked;return}recargar();toast(e.target.checked?'Modo sin factura activado':'Modo sin factura apagado');return}if(e.target.id==='e-v')detalleVenta();if(e.target.id==='f-est')pintarVen()});
 document.addEventListener('input',e=>{if(e.target.id==='f-q')pintarVen();if(e.target.id==='cl-q')pintarCli()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar()});
 </script>

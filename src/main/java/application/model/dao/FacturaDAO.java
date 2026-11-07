@@ -553,6 +553,33 @@ public class FacturaDAO {
 
     // ---------- interno ----------
 
+    /** Modo sin factura: el cobro se guarda como comprobante interno y NO consume números del CAI. */
+    public static boolean modoSinFactura(Connection c) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("SELECT valor FROM config WHERE clave = 'factura_modo_sin'");
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() && "1".equals(rs.getString(1));
+        }
+    }
+
+    public boolean modoSinFactura() {
+        try (Connection c = DatabaseConnection.getConnection()) {
+            return modoSinFactura(c);
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo leer la configuración", e);
+        }
+    }
+
+    public void ponerModoSinFactura(boolean activo) {
+        String sql = "INSERT INTO config (clave, valor) VALUES ('factura_modo_sin', ?) "
+                + "ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor";
+        try (Connection c = DatabaseConnection.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, activo ? "1" : "0");
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo guardar el modo sin factura", e);
+        }
+    }
+
     /** ISV que ya viene incluido en un total (centavos). Con 15 %: L 24.00 → L 3.13 de ISV y L 20.87 de subtotal. */
     static int isvIncluido(int totalCent, int pctX100) {
         long base = 10000L + pctX100;

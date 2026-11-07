@@ -208,7 +208,7 @@ function pintarCobro(){
      <input class="in m" id="cli-r" data-fmt="rtn" inputmode="numeric" maxlength="17" autocomplete="off" placeholder="RTN (14 dígitos, opcional)" value="${esc(cliRtn)}">
      <div class="sug" id="cli-s"></div>
      <p class="er" id="cli-e"></p><button class="lnk" data-cli="0">Quitar y dejar como Consumidor final</button></div>`
-   :`<div class="cf"><span>Factura a <b>Consumidor final</b></span><button class="lnk" data-cli="1">¿Pide factura con RTN?</button></div>`}
+   :(sinFac?'':`<div class="cf"><span>Factura a <b>Consumidor final</b></span><button class="lnk" data-cli="1">¿Pide factura con RTN?</button></div>`)}
    <div class="acc"><button class="pill" data-volver="1">Volver</button><button class="pill fill" id="ok">Confirmar cobro</button></div></div>`;
   refrescar();
   if(ef)$('#rec').focus();
@@ -228,22 +228,34 @@ function confirmarCobro(){
   mostrarComprobante(r);
 }
 // ---------- Factura emitida al cobrar ----------
-let cliOn=false,cliNom='',cliRtn='',facAct=null,reemOn=false,reNom='',reRtn='',cobroAct=null;
+let sinFac=false,cliOn=false,cliNom='',cliRtn='',facAct=null,reemOn=false,reNom='',reRtn='',cobroAct=null;
 const F=()=>window.javaFacturas||DEMO_F;   // sin Java (en el navegador) usa una factura de ejemplo
 const rtnOk=v=>/^(\d{14})?$/.test(v.replace(/[\s-]/g,''));
 const cliOk=()=>!cliOn||(cliNom.trim()!==''&&rtnOk(cliRtn));
 function avisoCai(){   // avisa ANTES de cobrar si el CAI no deja facturar o se está acabando
   let e;try{e=JSON.parse(F().estado())}catch(x){return}
   const b=$('#caiAviso');let m='';
-  if(e.problema)m=e.problema+'. No se puede cobrar hasta resolverlo.';
+  sinFac=!!e.sinFac;
+  if(sinFac){b.textContent='Modo sin factura: las ventas se guardan como comprobante interno. No son facturas.';b.hidden=false;b.className='caiaviso';return}
+  if(e.problema)m=e.problema+'. No se puede cobrar hasta resolverlo (un administrador puede activar el Modo sin factura en Facturas › Configuración).';
   else if(e.rest<=50||e.dias<=30)m='Atención: quedan '+e.rest+' facturas del CAI y vence en '+e.dias+' días.';
   b.textContent=m;b.hidden=!m;b.className='caiaviso'+(e.problema?' bad':'');
 }
 function mostrarComprobante(r){
   cobroAct=r;reemOn=false;reNom='';reRtn='';
+  if(!r.factura){pintarInterno(r);return}   // modo sin factura: solo comprobante interno
   facAct=JSON.parse(F().ver(String(r.factura)));
   pintarComprobante();
   if(facAct.neg&&facAct.neg.auto)imprimirFac();   // si está activada la impresión automática
+}
+function pintarInterno(r){
+  $('#mo').innerHTML=`<div class="mb ok" role="dialog" aria-modal="true" aria-label="Venta cobrada sin factura">
+   <p class="eyebrow">Venta cobrada · sin factura</p>
+   <strong class="mono" style="font-size:34px;font-weight:400">${money(r.total)}</strong>
+   ${r.cambio>0?`<div class="cam" style="width:100%"><span class="eyebrow">Recibido ${money(r.recibido)} · Cambio</span><b class="mono">${money(r.cambio)}</b></div>`:''}
+   <p class="nota" style="font-size:12px;color:var(--suave);text-align:center">Comprobante interno n.º ${r.id}. Es solo un control de la venta y no sustituye la factura.</p>
+   <button class="pill fill" id="nueva">Nueva venta</button></div>`;
+  $('#nueva').focus({preventScroll:true});
 }
 function pintarComprobante(){
   const r=cobroAct,f=facAct,ef=f.pago==='Efectivo';
@@ -328,7 +340,7 @@ function demoFactura(l,t,met,rec,cn,cr){
    neg:{n:'Café Café',rtn:'00000000000000',dir:'',tel:'',mail:'',auto:false}};
 }
 const DEMO_F={
- estado:()=>JSON.stringify({problema:'',rest:400,dias:200}),
+ estado:()=>JSON.stringify({problema:'',rest:400,dias:200,sinFac:!!window.__sinFac}),
  ver:()=>JSON.stringify(demoFac),
  reemitir:(id,n,r)=>{const f=demoFac;demoFactura(f.l.map(x=>x.n&&P.find(p=>p.n===x.n)?P.find(p=>p.n===x.n).id+':'+x.q:'').filter(Boolean).join(','),f.tot,f.pago,f.rec,n,r);return JSON.stringify({ok:true,id:demoFac.id})},
  imprimir:()=>'{"ok":true}'

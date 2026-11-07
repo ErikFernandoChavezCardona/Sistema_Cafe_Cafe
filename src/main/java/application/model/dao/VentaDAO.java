@@ -74,6 +74,10 @@ public class VentaDAO {
                     if (ps.executeUpdate() != 1) throw new IllegalStateException("La comanda ya no está pendiente");
                 }
                 InsumoDAO.consumir(c, e.id());
+                if (FacturaDAO.modoSinFactura(c)) {   // comprobante interno: no se emite factura ni se gasta un número del CAI
+                    c.commit();
+                    return new ResultadoCobro(e.id(), e.totalCent(), recibido, cambio, 0, "");
+                }
                 int idFactura = FacturaDAO.emitir(c, e.id(), idUsuario, clienteNombre, clienteRtn);
                 String numeroFactura = numeroDe(c, idFactura);
                 c.commit();

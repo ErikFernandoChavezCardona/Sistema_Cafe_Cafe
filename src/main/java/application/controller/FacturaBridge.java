@@ -76,13 +76,27 @@ public class FacturaBridge {
                     + ",\"isv\":" + c.isvX100() + ",\"neg\":" + Json.texto(c.negocio())
                     + ",\"rtn\":" + Json.texto(c.rtn()) + ",\"dir\":" + Json.texto(c.direccion())
                     + ",\"tel\":" + Json.texto(c.telefono()) + ",\"mail\":" + Json.texto(c.email())
-                    + ",\"auto\":" + c.imprimirAuto() + ",\"rest\":" + c.restantes() + ",\"dias\":" + dias
+                    + ",\"sinFac\":" + dao.modoSinFactura() + ",\"auto\":" + c.imprimirAuto() + ",\"rest\":" + c.restantes() + ",\"dias\":" + dias
                     + ",\"problema\":" + Json.texto(problema == null ? "" : problema)
                     + ",\"hoyTotal\":" + h[0] + ",\"hoyIsv\":" + h[1] + ",\"hoyN\":" + h[2] + ",\"sin\":" + h[3] + "}";
         } catch (Exception e) {
             Registro.error(e);
             error("No se pudo leer el estado de las facturas");
             return "{}";
+        }
+    }
+
+    /** activo: "1" o "0". Solo administrador. Con el modo activo el cobro no emite factura (comprobante interno). */
+    public String modoSinFactura(String activo) {
+        try {
+            if (!esAdministrador()) throw new IllegalStateException("Solo el administrador puede hacer esto");
+            boolean si = "1".equals(activo);
+            dao.ponerModoSinFactura(si);
+            AuditoriaDAO.registrar(web.usuarioActual(), si ? "Modo sin factura activado" : "Modo sin factura desactivado",
+                    si ? "Las ventas se guardan como comprobante interno" : "Las ventas vuelven a emitir factura");
+            return OK;
+        } catch (Exception e) {
+            return fallo(e);
         }
     }
 
