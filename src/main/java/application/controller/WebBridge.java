@@ -240,8 +240,8 @@ public class WebBridge {
                 return;
             }
             int monto = Integer.parseInt(centavos.trim());
-            if (monto < 0) {
-                error("El monto no puede ser negativo");
+            if (monto < 0 || monto > 100_000_000) {
+                error(monto < 0 ? "El monto no puede ser negativo" : "El fondo inicial no es válido (máximo L 1,000,000)");
                 return;
             }
             turnoDAO.abrir(u.id(), monto);

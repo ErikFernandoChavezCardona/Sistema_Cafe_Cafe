@@ -6,10 +6,12 @@
    Quita lo que no corresponde (letras, símbolos) y pone los guiones solos, también al pegar.
    Va en fase de captura para correr ANTES que el código de cada pantalla (así ve ya el valor limpio). */
 (function(){
-  function decimales(v,n){
+  // Topes para que nadie escriba cifras absurdas: enteros hasta 8 dígitos; decimales con 7 (dinero) o 6 (cantidades) antes del punto
+  function decimales(v,n,maxEnt){
     v=v.replace(',','.').replace(/[^\d.]/g,'');
-    var i=v.indexOf('.');if(i<0)return v;
-    return v.slice(0,i+1)+v.slice(i+1).replace(/\./g,'').slice(0,n);
+    var i=v.indexOf('.');
+    if(i<0)return v.slice(0,maxEnt);
+    return v.slice(0,Math.min(i,maxEnt))+'.'+v.slice(i+1).replace(/\./g,'').slice(0,n);
   }
   function grupos(v,t){
     var d=v.replace(/\D/g,'').slice(0,t.reduce(function(a,b){return a+b},0)),out=[],p=0;
@@ -17,9 +19,9 @@
     return out.join('-');
   }
   var F={
-    int:function(v){return v.replace(/\D/g,'')},
-    dec:function(v){return decimales(v,3)},
-    dec2:function(v){return decimales(v,2)},
+    int:function(v){return v.replace(/\D/g,'').slice(0,8)},
+    dec:function(v){return decimales(v,3,6)},
+    dec2:function(v){return decimales(v,2,7)},
     rtn:function(v){return grupos(v,[4,4,6])},
     pref:function(v){return grupos(v,[3,3,2])},
     fecha:function(v){return grupos(v,[4,2,2])},

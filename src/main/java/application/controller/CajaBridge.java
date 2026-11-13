@@ -82,9 +82,13 @@ public class CajaBridge {
                 error("Escribe una descripción");
                 return;
             }
+            if (descripcion.trim().length() > 120) {
+                error("La descripción es muy larga (máximo 120 letras)");
+                return;
+            }
             int monto = Integer.parseInt(centavos.trim());
-            if (monto <= 0) {
-                error("El monto debe ser mayor que cero");
+            if (monto <= 0 || monto > 100_000_000) {
+                error("El monto debe ser mayor que cero y menor de L 1,000,000");
                 return;
             }
             String cat = categoria == null || categoria.isBlank() ? "General" : categoria.trim();
@@ -126,9 +130,13 @@ public class CajaBridge {
                 error("Escribe un concepto");
                 return;
             }
+            if (concepto.trim().length() > 120) {
+                error("El concepto es muy largo (máximo 120 letras)");
+                return;
+            }
             int monto = Integer.parseInt(centavos.trim());
-            if (monto <= 0) {
-                error("El monto debe ser mayor que cero");
+            if (monto <= 0 || monto > 100_000_000) {
+                error("El monto debe ser mayor que cero y menor de L 1,000,000");
                 return;
             }
             ingresoDAO.registrar(t.id(), concepto.trim(), monto);
@@ -164,6 +172,10 @@ public class CajaBridge {
             }
             if (motivo == null || motivo.isBlank()) {
                 error("Escribe el motivo de la anulación");
+                return "{\"ok\":false}";
+            }
+            if (motivo.trim().length() > 200) {
+                error("El motivo es muy largo (máximo 200 letras)");
                 return "{\"ok\":false}";
             }
             int idMovimiento = Integer.parseInt(id.trim());
@@ -218,8 +230,8 @@ public class CajaBridge {
                 return "{\"ok\":false}";
             }
             int contado = Integer.parseInt(contadoCentavos.trim());
-            if (contado < 0) {
-                error("El efectivo contado no puede ser negativo");
+            if (contado < 0 || contado > 1_000_000_000) {
+                error(contado < 0 ? "El efectivo contado no puede ser negativo" : "El efectivo contado no es válido");
                 return "{\"ok\":false}";
             }
             ResultadoCierre r = turnoDAO.cerrar(t.id(), contado, u.id());

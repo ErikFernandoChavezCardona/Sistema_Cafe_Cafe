@@ -129,7 +129,7 @@ select.in{appearance:none}
   <h2 class="h" style="font-size:22px">Registrar egreso</h2>
   <form data-f="egreso">
     <label for="eg-d">Descripción</label>
-    <input class="in" id="eg-d" placeholder="Ej: Hielo, gas, taxi…" autocomplete="off" required>
+    <input class="in" id="eg-d" maxlength="120" placeholder="Ej: Hielo, gas, taxi…" autocomplete="off" required>
     <label for="eg-c">Categoría</label>
     <select class="in" id="eg-c">
       <option>General</option><option>Insumos</option><option>Servicios</option><option>Transporte</option><option>Limpieza</option><option>Otros</option>
@@ -144,7 +144,7 @@ select.in{appearance:none}
   <h2 class="h" style="font-size:22px">Registrar ingreso</h2>
   <form data-f="ingreso">
     <label for="in-d">Concepto</label>
-    <input class="in" id="in-d" placeholder="Ej: Reposición de cambio" autocomplete="off" required>
+    <input class="in" id="in-d" maxlength="120" placeholder="Ej: Reposición de cambio" autocomplete="off" required>
     <label for="in-m">Monto</label>
     <input class="in m" id="in-m" data-fmt="dec2" inputmode="decimal" placeholder="L 0.00" autocomplete="off" required>
     <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar ingreso</button></div>
@@ -168,7 +168,7 @@ select.in{appearance:none}
   <p class="nota" id="an-res" style="margin:0"></p>
   <form data-f="anular">
     <label for="an-mo">Motivo</label>
-    <input class="in" id="an-mo" placeholder="Ej: Me equivoqué en el monto" autocomplete="off" required>
+    <input class="in" id="an-mo" maxlength="200" placeholder="Ej: Me equivoqué en el monto" autocomplete="off" required>
     <label class="ck" id="an-inv-fila" hidden><input type="checkbox" id="an-inv"><span>¿Revertir también la compra en el inventario? (resta lo comprado del stock)</span></label>
     <p class="nota" id="an-inv-nota" hidden style="margin:0">Márcala si la mercancía no llegó o la devolviste. Si no la marcas, el stock se queda como está.</p>
     <p class="nota" style="margin:0">Queda en el historial como anulado y ya no suma ni resta al efectivo.</p>

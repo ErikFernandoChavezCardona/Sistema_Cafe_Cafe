@@ -52,6 +52,7 @@ public class FacturaDAO {
         if (problema != null) throw new IllegalStateException(problema);
 
         String cliente = (nombre == null || nombre.isBlank()) ? CONSUMIDOR_FINAL : nombre.trim();
+        if (cliente.length() > 60) throw new IllegalArgumentException("El nombre del cliente es muy largo (máximo 60 letras)");
         String rtnLimpio = rtn == null ? "" : rtn.replaceAll("[\\s-]", "");
         if (!rtnLimpio.isEmpty() && !rtnLimpio.matches("\\d{14}"))
             throw new IllegalArgumentException("El RTN debe tener 14 dígitos");
@@ -177,6 +178,7 @@ public class FacturaDAO {
 
     private static void anularEn(Connection c, int idFactura, int idUsuario, String motivo) throws SQLException {
         if (motivo == null || motivo.isBlank()) throw new IllegalArgumentException("Escribe el motivo de la anulación");
+        if (motivo.trim().length() > 200) throw new IllegalArgumentException("El motivo es muy largo (máximo 200 letras)");
         String sql = "UPDATE facturas_venta SET anulada = 1, motivo_anulacion = ?, id_usuario_anulo = ?, "
                 + "anulada_en = datetime('now','localtime') WHERE id_factura_venta = ? AND anulada = 0";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
@@ -328,6 +330,12 @@ public class FacturaDAO {
         if (!n.prefijo().matches("\\d{3}-\\d{3}-\\d{2}"))
             throw new IllegalArgumentException("El prefijo debe verse así: 000-001-01");
         if (n.negocio().isBlank()) throw new IllegalArgumentException("Escribe el nombre del negocio");
+        if (n.negocio().length() > 80) throw new IllegalArgumentException("El nombre del negocio es muy largo (máximo 80 letras)");
+        if (n.direccion() != null && n.direccion().length() > 120) throw new IllegalArgumentException("La dirección es muy larga (máximo 120 letras)");
+        if (n.telefono() != null && n.telefono().length() > 20) throw new IllegalArgumentException("El teléfono es muy largo");
+        if (n.email() != null && !n.email().isBlank() && (n.email().length() > 80 || !n.email().matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")))
+            throw new IllegalArgumentException("El correo no es válido");
+        if (n.cai().length() > 60) throw new IllegalArgumentException("El CAI es muy largo (máximo 60 caracteres)");
         if (!n.rtn().matches("\\d{14}")) throw new IllegalArgumentException("El RTN del negocio debe tener 14 dígitos");
         if (n.isvX100() < 0 || n.isvX100() > 10000) throw new IllegalArgumentException("El ISV debe estar entre 0 y 100");
 
@@ -531,9 +539,16 @@ public class FacturaDAO {
     public void registrarCompra(int idProveedor, String numero, String fecha, int totalCent, String nota) {
         if (idProveedor <= 0) throw new IllegalArgumentException("Elige un proveedor");
         if (numero == null || numero.isBlank()) throw new IllegalArgumentException("Escribe el número de la factura");
+        if (numero.trim().length() > 25) throw new IllegalArgumentException("El número de la factura es muy largo (máximo 25 caracteres)");
+        if (nota != null && nota.trim().length() > 80) throw new IllegalArgumentException("La nota es muy larga (máximo 80 letras)");
         if (fecha == null || !fecha.matches("\\d{4}-\\d{2}-\\d{2}"))
             throw new IllegalArgumentException("La fecha debe ser AAAA-MM-DD");
-        if (totalCent < 0) throw new IllegalArgumentException("El total no puede ser negativo");
+        try {
+            LocalDate.parse(fecha);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("La fecha no es válida");
+        }
+        if (totalCent <= 0 || totalCent > 100_000_000) throw new IllegalArgumentException("Revisa el total: debe ser mayor que cero y menor de L 1,000,000");
         String sql = "INSERT INTO facturas_compra (id_proveedor, numero, fecha, total_cent, nota) "
                 + "VALUES (?, ?, ?, ?, NULLIF(?, ''))";
         try (Connection c = DatabaseConnection.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {

@@ -62,6 +62,7 @@ public class ClienteDAO {
 
     public void renombrar(String rtn, String nombre) {
         if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("Escribe el nombre del cliente");
+        if (nombre.trim().length() > 60) throw new IllegalArgumentException("El nombre del cliente es muy largo (máximo 60 letras)");
         ejecutar("UPDATE clientes SET nombre = ? WHERE rtn = ?", nombre.trim(), rtn);
     }
 

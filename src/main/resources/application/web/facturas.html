@@ -124,10 +124,10 @@ select.in{appearance:none}
         <p class="nota">Estos datos se llenan solos al registrar un talonario en la pestaña "CAI e historial". Mientras el sistema factura, el siguiente número sube solo.</p>
       </div>
       <div class="card" style="gap:10px"><span class="eyebrow">Datos del negocio en la factura</span>
-        <div><label class="t nota">Nombre (razón social)</label><input class="in" id="c-n"></div>
-        <div class="dos"><div><label class="t nota">RTN del negocio</label><input class="in m" id="c-r" data-fmt="rtn" inputmode="numeric" maxlength="16"></div><div><label class="t nota">Teléfono</label><input class="in" id="c-t" data-fmt="tel"></div></div>
-        <div><label class="t nota">Dirección</label><input class="in" id="c-di"></div>
-        <div class="dos"><div><label class="t nota">Correo</label><input class="in" id="c-e"></div><div><label class="t nota">ISV (%)</label><input class="in m" id="c-i" data-fmt="dec2" inputmode="decimal"></div></div>
+        <div><label class="t nota">Nombre (razón social)</label><input class="in" id="c-n" maxlength="80"></div>
+        <div class="dos"><div><label class="t nota">RTN del negocio</label><input class="in m" id="c-r" data-fmt="rtn" inputmode="numeric" maxlength="16"></div><div><label class="t nota">Teléfono</label><input class="in" id="c-t" data-fmt="tel" maxlength="20"></div></div>
+        <div><label class="t nota">Dirección</label><input class="in" id="c-di" maxlength="120"></div>
+        <div class="dos"><div><label class="t nota">Correo</label><input class="in" id="c-e" maxlength="80" type="email" autocomplete="off"></div><div><label class="t nota">ISV (%)</label><input class="in m" id="c-i" data-fmt="dec2" inputmode="decimal"></div></div>
         <label class="chk"><input type="checkbox" id="c-a"><span>Imprimir la factura automáticamente al cobrar</span></label>
         <p class="nota">Los precios del menú ya incluyen el ISV: la factura solo lo desglosa, así el total no cambia. Confirma estos datos con tu contador.</p>
         <button class="pill fill" data-guardar-cfg>Guardar configuración</button>

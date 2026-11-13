@@ -83,6 +83,10 @@ public class InsumoBridge {
         if (!permitido()) return FALLO;
         try {
             if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("Escribe el nombre del proveedor");
+            if (nombre.trim().length() > 60) throw new IllegalArgumentException("El nombre del proveedor es muy largo (máximo 60 letras)");
+            if (limpio(telefono).length() > 20) throw new IllegalArgumentException("El teléfono es muy largo");
+            String rtnSolo = limpio(rtn).replaceAll("[\\s-]", "");
+            if (!rtnSolo.isEmpty() && !rtnSolo.matches("\\d{14}")) throw new IllegalArgumentException("El RTN debe tener 14 dígitos");
             int nuevo = proveedorDAO.guardar(entero(id), nombre.trim(), limpio(telefono), limpio(rtn));
             return "{\"ok\":true,\"id\":" + nuevo + "}";
         } catch (Exception e) {
@@ -162,6 +166,7 @@ public class InsumoBridge {
                 throw new IllegalArgumentException("Elige la unidad del insumo");
             int minimo = entero(minimoBase);
             if (minimo < 0) throw new IllegalArgumentException("El stock mínimo no puede ser negativo");
+            if (minimo > 1_000_000_000) throw new IllegalArgumentException("El stock mínimo es demasiado grande");
             int nuevo = dao.guardar(entero(id), nombre.trim(), unidad, minimo, entero(idProveedor), "1".equals(activo));
             AuditoriaDAO.registrar(web.usuarioActual(), entero(id) == 0 ? "Insumo creado" : "Insumo editado",
                     nombre.trim() + " (" + unidad + ") · mínimo " + minimo + ("1".equals(activo) ? "" : " · inactivo"));
@@ -193,6 +198,8 @@ public class InsumoBridge {
             int total = entero(totalCentavos);
             if (cantidad <= 0) throw new IllegalArgumentException("La cantidad comprada debe ser mayor que cero");
             if (total <= 0) throw new IllegalArgumentException("El costo total debe ser mayor que cero");
+            if (total > 100_000_000) throw new IllegalArgumentException("El costo total no puede pasar de L 1,000,000");
+            if (cantidad > 1_000_000_000) throw new IllegalArgumentException("La cantidad comprada es demasiado grande");
             // permitido() ya comprobó que hay un administrador con sesión iniciada: su id queda en el historial
             dao.registrarCompra(entero(id), cantidad, total, "1".equals(actualizarCosto), "1".equals(pagadoCaja), web.usuarioActual().id());
             return "{\"ok\":true}";
@@ -206,6 +213,7 @@ public class InsumoBridge {
         if (!permitido()) return FALLO;
         try {
             if (motivo == null || motivo.isBlank()) throw new IllegalArgumentException("Escribe el motivo del ajuste");
+            if (motivo.trim().length() > 120) throw new IllegalArgumentException("El motivo es muy largo (máximo 120 letras)");
             int cantidad = entero(cantidadBase);
             if (cantidad < 0 || ("merma".equals(modo) && cantidad == 0)) throw new IllegalArgumentException("Escribe una cantidad válida");
             dao.ajustar(entero(id), modo, cantidad, motivo.trim(), web.usuarioActual().id());

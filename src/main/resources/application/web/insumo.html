@@ -301,6 +301,8 @@ function comprar(){
   const b=cantCompra(),t=aCent($('#bt').value);
   if(porEnvase()&&!(num($('#bsz').value)>0)){mostrarError('Escribe cuánto contiene cada envase');return}
   if(!(b>0)){mostrarError('Escribe la cantidad comprada');return}
+  if(b>1000000000){mostrarError('La cantidad comprada es demasiado grande');return}
+  if(t>100000000){mostrarError('El costo total no puede pasar de L 1,000,000');return}
   if(!(t>0)){mostrarError('Escribe el costo total');return}
   if(!enJava()){demo();return}
   const r=JSON.parse(javaInsumos.registrarCompra(String(D.id),String(b),String(t),$('#bact').checked?'1':'0',$('#bcaja').checked?'1':'0'));

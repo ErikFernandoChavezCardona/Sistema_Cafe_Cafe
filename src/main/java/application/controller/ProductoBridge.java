@@ -241,8 +241,8 @@ public class ProductoBridge {
                 if (par.length != 2) throw new NumberFormatException();
                 int insumo = Integer.parseInt(par[0].trim());
                 int cantidad = Integer.parseInt(par[1].trim());
-                if (cantidad <= 0) {
-                    error("Las cantidades de la receta deben ser mayores que cero");
+                if (cantidad <= 0 || cantidad > 1_000_000) {
+                    error("Las cantidades de la receta deben ser mayores que cero y razonables");
                     return null;
                 }
                 if (!vistos.add(insumo)) {
