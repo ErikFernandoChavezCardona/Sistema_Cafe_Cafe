@@ -35,7 +35,7 @@ form{width:100%;display:flex;flex-direction:column;gap:12px}
   <form id="f">
     <input class="in" id="u" placeholder="Usuario o correo" autocomplete="username" maxlength="40" required>
     <input class="in" id="p" type="password" placeholder="Contraseña" autocomplete="current-password" maxlength="100" required>
-    <input class="in" id="c" placeholder="Código de recuperación" autocomplete="off" maxlength="30" hidden>
+    <input class="in" id="c" placeholder="Código de recuperación (XXXX-XXXX-XXXX-XXXX)" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="19" hidden>
     <button class="pill go" id="b">Entrar</button>
   </form>
   <button class="olvido" id="olvido" type="button">¿Olvidaste tu contraseña? (administrador)</button>
@@ -64,6 +64,11 @@ function poner(m){
   $('olvido').textContent=m==='recuperar'?'Volver a entrar':'¿Olvidaste tu contraseña? (administrador)';
 }
 window.onJavaReady=()=>{ if(!javaApp.hayUsuarios()) poner('crear'); };
+// Código de recuperación: solo letras y números del código (sin I, O, 0, 1), en mayúsculas, máximo 16, con guion automático cada 4
+$('c').addEventListener('input',()=>{
+  const l=$('c').value.toUpperCase().replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ2-9]/g,'').slice(0,16);
+  $('c').value=l.replace(/(.{4})(?=.)/g,'$1-');
+});
 $('olvido').addEventListener('click',()=>poner(modo==='recuperar'?'entrar':'recuperar'));
 function mostrarCodigo(c){
   $('f').hidden=true;$('olvido').hidden=true;$('cod').hidden=false;$('cod-v').textContent=c;$('err').textContent='';

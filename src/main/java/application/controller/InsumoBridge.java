@@ -172,6 +172,19 @@ public class InsumoBridge {
         }
     }
 
+    /** Elimina un insumo creado por error (solo si no está en recetas). Devuelve {"ok":true}. */
+    public String eliminarInsumo(String id) {
+        if (!permitido()) return FALLO;
+        try {
+            String nombre = dao.eliminar(entero(id));
+            AuditoriaDAO.registrar(web.usuarioActual(), "Insumo eliminado", nombre);
+            seleccionado = 0;
+            return "{\"ok\":true}";
+        } catch (Exception e) {
+            return fallo(e);
+        }
+    }
+
     /** cantidadBase en g/ml/ud, totalCentavos lo pagado. actualizarCosto y pagadoCaja: "1" o "0". */
     public String registrarCompra(String id, String cantidadBase, String totalCentavos, String actualizarCosto, String pagadoCaja) {
         if (!permitido()) return FALLO;

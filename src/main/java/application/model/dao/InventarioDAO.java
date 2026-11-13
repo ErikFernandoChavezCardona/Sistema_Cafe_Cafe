@@ -67,11 +67,13 @@ public class InventarioDAO {
             c.setAutoCommit(false);
             try {
                 try (PreparedStatement ps = c.prepareStatement(
-                        "SELECT 1 FROM insumos WHERE lower(nombre) = lower(?) AND id_insumo <> ?")) {
+                        "SELECT activo FROM insumos WHERE lower(nombre) = lower(?) AND id_insumo <> ?")) {
                     ps.setString(1, nombre);
                     ps.setInt(2, id);
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) throw new IllegalArgumentException("Ya existe un insumo con ese nombre");
+                        if (rs.next()) throw new IllegalArgumentException(rs.getInt(1) == 0
+                                ? "Ya existe un insumo desactivado con ese nombre. Ábrelo desde la lista (filtro de inactivos) y elimínalo si fue un error, o reactívalo"
+                                : "Ya existe un insumo con ese nombre");
                     }
                 }
                 int resultado = id;
@@ -113,6 +115,52 @@ public class InventarioDAO {
             }
         } catch (SQLException e) {
             throw new IllegalStateException("No se pudo guardar el insumo", e);
+        }
+    }
+
+    /**
+     * Elimina un insumo creado por error. Solo si NO está en ninguna receta. Se borra también su historial de
+     * movimientos; los egresos que venían de una compra de este insumo se conservan (el dinero salió) y solo pierden el vínculo.
+     * Devuelve el nombre del insumo eliminado.
+     */
+    public String eliminar(int id) {
+        try (Connection c = DatabaseConnection.getConnection()) {
+            c.setAutoCommit(false);
+            try {
+                String nombre;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT nombre, (SELECT COUNT(*) FROM recetas WHERE id_insumo = ?) FROM insumos WHERE id_insumo = ?")) {
+                    ps.setInt(1, id);
+                    ps.setInt(2, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new IllegalStateException("El insumo ya no existe");
+                        nombre = rs.getString(1);
+                        if (rs.getInt(2) > 0)
+                            throw new IllegalArgumentException("El insumo está en recetas de productos. Quítalo de las recetas o desactívalo");
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE egresos SET id_movimiento_inventario = NULL WHERE id_movimiento_inventario IN "
+                                + "(SELECT id_movimiento FROM movimientos_inventario WHERE id_insumo = ?)")) {
+                    ps.setInt(1, id);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = c.prepareStatement("DELETE FROM movimientos_inventario WHERE id_insumo = ?")) {
+                    ps.setInt(1, id);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = c.prepareStatement("DELETE FROM insumos WHERE id_insumo = ?")) {
+                    ps.setInt(1, id);
+                    ps.executeUpdate();
+                }
+                c.commit();
+                return nombre;
+            } catch (SQLException | RuntimeException e) {
+                c.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo eliminar el insumo", e);
         }
     }
 

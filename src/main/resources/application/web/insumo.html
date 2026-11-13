@@ -27,6 +27,7 @@ label{display:block;font-size:12px;color:var(--suave);margin:0 0 4px 8px}
 select.in{appearance:none}
 .in.m{font-family:var(--m)}
 .tres{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}.dos[hidden],#bszw[hidden]{display:none}
 .ck{display:flex;gap:10px;align-items:center;cursor:pointer}
 .ck input{width:20px;height:20px;accent-color:var(--prof)}
 .pieC{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -77,6 +78,7 @@ select.in{appearance:none}
       <div class="tit"><h1 class="h" id="titulo">Insumo</h1><span class="b ok" id="estado" hidden></span></div>
     </div>
     <div class="acc">
+      <button class="pill" id="b-del" data-eliminar hidden>Eliminar insumo</button>
       <button class="pill" id="b-aj" data-ajuste>Ajustar stock</button>
       <button class="pill fill" data-guardar>Guardar cambios</button>
     </div>
@@ -90,8 +92,12 @@ select.in{appearance:none}
         <select class="in" id="u"><option value="g">Gramos (g)</option><option value="ml">Mililitros (ml)</option><option value="ud">Unidades (ud)</option></select></div>
       <div><label for="c" id="l-c">Costo</label><input class="in m" id="c" readonly tabindex="-1" placeholder="Se llena con la primera compra">
         <p class="nota" style="margin:4px 0 0 8px">Lo calcula solo cada compra registrada (lo pagado entre lo comprado). No se escribe a mano.</p></div>
-      <div><label for="pv">Proveedor</label><select class="in" id="pv"></select></div>
-      <div><label for="m" id="l-m">Stock mínimo</label><input class="in m" id="m" data-fmt="dec" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+      <div><label for="pv">Proveedor</label><select class="in" id="pv" data-buscar="Elegir proveedor"></select></div>
+      <div><label for="m" id="l-m">Stock mínimo</label><input class="in m" id="m" data-fmt="dec" inputmode="decimal" placeholder="0" autocomplete="off">
+        <div class="dos" id="mpres" style="margin-top:8px" hidden>
+          <div><label for="mmod">Escribirlo en</label><select class="in" id="mmod"></select></div>
+          <div id="mszw" hidden><label for="msz" id="l-msz">Contenido de cada envase</label><input class="in m" id="msz" data-fmt="dec" inputmode="decimal" placeholder="750" autocomplete="off"></div>
+        </div></div>
       <div class="pieC"><span>Activo</span>
         <button type="button" class="sw" id="a" data-sw aria-pressed="true" aria-label="Activo"><i></i></button></div>
       <p class="nota" id="nota"></p>
@@ -101,6 +107,10 @@ select.in{appearance:none}
       <section class="card" id="c-compra">
         <p class="eyebrow">Registrar compra</p>
         <form id="f-compra" style="display:flex;flex-direction:column;gap:12px">
+          <div class="dos" id="bpres" hidden>
+            <div><label for="bmod">Comprado por</label><select class="in" id="bmod"><option value="u">Litros / kilos</option><option value="e">Envases (botellas, bolsas…)</option></select></div>
+            <div id="bszw" hidden><label for="bsz" id="l-bsz">Contenido de cada envase</label><input class="in m" id="bsz" data-fmt="dec" inputmode="decimal" placeholder="750" autocomplete="off"></div>
+          </div>
           <div class="tres">
             <div><label for="bc" id="l-bc">Cantidad comprada</label><input class="in m" id="bc" data-fmt="dec" inputmode="decimal" placeholder="0" autocomplete="off"></div>
             <div><label for="bt">Costo total (L)</label><input class="in m" id="bt" data-fmt="dec2" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
@@ -132,6 +142,12 @@ select.in{appearance:none}
     <div class="pieC"><span>Stock quedará en: <b class="mono" id="aj-pre">—</b></span></div>
     <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button class="pill fill">Guardar ajuste</button></div>
   </form>
+</div></div>
+<div class="fondo" id="m-del"><div class="modal">
+  <h2 class="h" style="font-size:22px">Eliminar insumo</h2>
+  <p class="nota">Úsalo solo si el insumo se creó por error (por ejemplo, con la unidad equivocada). Se borra junto con su historial de compras y ajustes. Los egresos ya registrados no se borran.</p>
+  <p class="nota" id="del-n"></p>
+  <div class="btns"><button type="button" class="pill" data-cerrar>Cancelar</button><button type="button" class="pill fill" data-eliminar-ok>Eliminar</button></div>
 </div></div>
 <div id="toast" role="alert"></div>
 
@@ -179,19 +195,64 @@ function cargar(){
 function etiquetas(u){
   const x=UN[u];
   $('#l-c').textContent='Costo por '+x.big+' (L) · automático';
-  $('#l-m').textContent='Stock mínimo ('+x.bigs+')';
-  $('#l-bc').textContent='Cantidad comprada ('+x.s+')';
+  presMin();
   $('#l-bp').textContent='Costo por '+x.big;
+  presentacion();
+}
+// Compra por envases: el usuario escribe cuántas botellas/bolsas y el contenido de cada una (ml o g); el sistema hace la cuenta
+// Stock mínimo: se puede escribir en litros/kilos, en ml/g o en envases (siempre se guarda en unidad base)
+let mPrev='u';
+function modoMin(){return $('#mpres').hidden?'u':$('#mmod').value}
+function presMin(){
+  const u=$('#u').value,x=UN[u],ud=(u==='ud');
+  $('#mpres').hidden=ud;
+  const sel=$('#mmod'),cur=sel.value||'u',peq=u==='g'?'gramos':'mililitros';
+  sel.innerHTML=`<option value="u">${x.bigs[0].toUpperCase()+x.bigs.slice(1)} (${x.s})</option><option value="s">${peq[0].toUpperCase()+peq.slice(1)} (${u})</option><option value="e">Envases</option>`;
+  sel.value=ud?'u':cur;mPrev=sel.value;
+  const m=modoMin();
+  $('#mszw').hidden=m!=='e';
+  $('#l-msz').textContent='Contenido de cada envase ('+u+')';
+  $('#l-m').textContent='Stock mínimo ('+(m==='u'?x.bigs:m==='s'?peq:'envases')+')';
+}
+function minBase(m){
+  const t=$('#m').value.trim();if(t==='')return 0;
+  m=m||modoMin();const n=num(t);if(n===null)return null;
+  if(m==='s')return Math.round(n);
+  if(m==='e'){const z=num($('#msz').value);return z===null?null:Math.round(n*z)}
+  return aBase(t,$('#u').value);
+}
+function cambioModoMin(){
+  const u=$('#u').value,vacio=$('#m').value.trim()==='';
+  const b=minBase(mPrev);                      // cantidad escrita, leída con el modo anterior
+  presMin();
+  const nu=modoMin();
+  if(vacio||nu==='e'||b===null){$('#m').value='';return}
+  $('#m').value=nu==='s'?String(b):dec(b/fct(u),3);
+}
+function porEnvase(){return !$('#bpres').hidden&&$('#bmod').value==='e'}
+function presentacion(){
+  const u=D&&D.u?D.u:$('#u').value,x=UN[u];
+  $('#bpres').hidden=(u==='ud');
+  const e=porEnvase();
+  $('#bszw').hidden=!e;
+  $('#l-bsz').textContent='Contenido de cada envase ('+(u==='g'?'g':'ml')+')';
+  $('#l-bc').textContent=e?'Cantidad de envases':'Cantidad comprada ('+x.s+')';
+}
+function cantCompra(){   // cantidad comprada en unidad base (ml, g o ud)
+  const u=D.u;
+  if(porEnvase()){const n=num($('#bc').value),z=num($('#bsz').value);return(n===null||z===null)?null:Math.round(n*z)}
+  return aBase($('#bc').value,u);
 }
 function pintar(){
   const nuevo=!D.id,e=estado(D);
   $('#titulo').textContent=nuevo?'Nuevo insumo':D.n;
   const b=$('#estado');b.hidden=nuevo;b.className='b '+e.k;b.textContent='Stock: '+stk(D.s,D.u)+' · '+e.t;
-  $('#b-aj').hidden=nuevo;$('#c-compra').hidden=nuevo;$('#c-hist').hidden=nuevo;
+  $('#b-aj').hidden=nuevo;$('#b-del').hidden=nuevo||D.uso>0;$('#c-compra').hidden=nuevo;$('#c-hist').hidden=nuevo;
   $('#n').value=D.n;
   $('#u').value=D.u;
   $('#u').disabled=!nuevo&&(D.mov>0||D.uso>0);   // con historial o recetas, cambiar la unidad cambiaría su significado
   $('#c').value=D.c?(D.u==='ud'?D.c/100000:D.c/100).toFixed(2):'';
+  $('#mmod').value='u';$('#msz').value='';
   $('#m').value=D.m?dec(D.m/fct(D.u),3):'';
   $('#pv').innerHTML='<option value="0">Sin proveedor</option>'+PV.filter(p=>p.a||p.id===D.pid).map(p=>`<option value="${p.id}">${esc(p.n)}</option>`).join('');
   $('#pv').value=String(D.pid);
@@ -218,7 +279,8 @@ function notaUso(){
 function guardar(){
   const n=$('#n').value.trim(),u=$('#u').value;
   if(!n){mostrarError('Escribe el nombre del insumo');return}
-  const mv=$('#m').value.trim()===''?0:aBase($('#m').value,u);
+  const mv=minBase();
+  if(mv===null){mostrarError(modoMin()==='e'?'Escribe cuánto contiene cada envase':'El stock mínimo no es válido');return}
   if(mv===null){mostrarError('El stock mínimo no es válido');return}
   if(!enJava()){demo();return}
   // El costo no se envía: lo calculan las compras
@@ -230,13 +292,14 @@ function guardar(){
 
 // ---- Registrar compra ----
 function recalcCompra(){
-  const u=D.u,q=num($('#bc').value),t=aCent($('#bt').value),b=aBase($('#bc').value,u);
+  const u=D.u,t=aCent($('#bt').value),b=cantCompra(),q=b===null?null:b/fct(u);   // q = litros, kilos o unidades compradas
   $('#bp').value=(q>0&&t!==null)?money(Math.round(t/q)):'';   // lo pagado entre lo comprado = costo por kilo, litro o unidad
   $('#bpost').textContent=stk(D.s+(b||0),u);
   $('#bok').disabled=!(b>0&&t>0);
 }
 function comprar(){
-  const b=aBase($('#bc').value,D.u),t=aCent($('#bt').value);
+  const b=cantCompra(),t=aCent($('#bt').value);
+  if(porEnvase()&&!(num($('#bsz').value)>0)){mostrarError('Escribe cuánto contiene cada envase');return}
   if(!(b>0)){mostrarError('Escribe la cantidad comprada');return}
   if(!(t>0)){mostrarError('Escribe el costo total');return}
   if(!enJava()){demo();return}
@@ -281,6 +344,14 @@ let tt;function toast(m,err){const t=$('#toast');t.textContent=m;t.className=err
 window.mostrarError=m=>toast(m,true);
 const aviso=m=>toast(m,false);
 const demo=()=>aviso('Modo diseño (sin Java): no se guarda');
+function eliminarInsumo(){
+  if(!enJava()){cerrar();aviso('Insumo eliminado (demo)');return}
+  if(typeof javaInsumos.eliminarInsumo!=='function'){cerrar();mostrarError('Falta actualizar la aplicación: copia también InsumoBridge.java e InventarioDAO.java del paso17, borra target y vuelve a correr');return}
+  let r;
+  try{r=JSON.parse(javaInsumos.eliminarInsumo(String(D.id)))}catch(err){cerrar();mostrarError('No se pudo eliminar: '+(err&&err.message?err.message:err));return}
+  if(!r.ok){cerrar();return}
+  javaApp.irA('insumos.html');
+}
 function cerrar(){document.querySelectorAll('.fondo.on').forEach(f=>f.classList.remove('on'))}
 
 window.onJavaReady=()=>{
@@ -296,16 +367,18 @@ document.addEventListener('click',e=>{
   if(d.volver!==undefined){enJava()?javaApp.irA('insumos.html'):location.href='insumos.html'}
   else if(d.guardar!==undefined)guardar();
   else if(d.ajuste!==undefined)abrirAjuste();
+  else if(d.eliminar!==undefined){$('#del-n').textContent='Insumo: '+D.n;$('#m-del').classList.add('on')}
+  else if(d.eliminarOk!==undefined)eliminarInsumo();
   else if(d.modo){modo=d.modo;$('#aj-q').value='';pintarAjuste()}
   else if(d.sw!==undefined){fijarSw(b,b.getAttribute('aria-pressed')!=='true');notaUso()}
   else if(d.cerrar!==undefined)cerrar();
 });
 document.addEventListener('input',e=>{
   const id=e.target.id;
-  if(id==='bc'||id==='bt')recalcCompra();
+  if(id==='bc'||id==='bt'||id==='bsz')recalcCompra();
   else if(id==='aj-q')pintarAjuste();
 });
-document.addEventListener('change',e=>{if(e.target.id==='u')etiquetas(e.target.value)});
+document.addEventListener('change',e=>{if(e.target.id==='u')etiquetas(e.target.value);else if(e.target.id==='bmod'){presentacion();recalcCompra()}else if(e.target.id==='mmod')cambioModoMin()});
 document.addEventListener('submit',e=>{
   e.preventDefault();
   if(e.target.id==='f-compra')comprar();else if(e.target.id==='f-aj')guardarAjuste();
@@ -313,6 +386,7 @@ document.addEventListener('submit',e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar()});
 </script>
 <script src="../assets/js/campos.js"></script>
+<script src="../assets/js/selector.js"></script>
 <script src="../assets/js/nav.js"></script>
 </body>
 </html>

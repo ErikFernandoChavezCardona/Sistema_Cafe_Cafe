@@ -138,7 +138,7 @@ select.in{appearance:none}
 
 <div class="fondo" id="m-emi"><div class="modal"><h2 class="h" style="font-size:22px">Facturar una venta sin factura</h2>
   <p class="nota">Son ventas cobradas antes de que la facturación fuera automática, o ventas cuya factura se anuló.</p>
-  <div><label class="t" for="e-v">Venta cobrada sin factura</label><select class="in" id="e-v"></select></div>
+  <div><label class="t" for="e-v">Venta cobrada sin factura</label><select class="in" id="e-v" data-buscar="Elegir venta"></select></div>
   <div id="e-det" class="card" style="gap:0"></div>
   <div class="dos"><div><label class="t" for="e-n">Cliente</label><input class="in" id="e-n" value="Consumidor final" maxlength="60"></div><div><label class="t" for="e-r">RTN (opcional)</label><input class="in m" id="e-r" data-fmt="rtn" inputmode="numeric" maxlength="17" placeholder="14 dígitos"></div></div>
   <p class="nota" id="e-num"></p>
@@ -164,7 +164,7 @@ select.in{appearance:none}
   <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-anular>Anular factura</button></div></div></div>
 
 <div class="fondo" id="m-com"><div class="modal"><h2 class="h" style="font-size:22px">Registrar factura de compra</h2>
-  <div class="dos"><div><label class="t" for="k-pv">Proveedor</label><select class="in" id="k-pv"></select></div><div><label class="t" for="k-nu">N.º de factura</label><input class="in m" id="k-nu" maxlength="25"></div></div>
+  <div class="dos"><div><label class="t" for="k-pv">Proveedor</label><select class="in" id="k-pv" data-buscar="Elegir proveedor"></select></div><div><label class="t" for="k-nu">N.º de factura</label><input class="in m" id="k-nu" maxlength="25"></div></div>
   <div class="dos"><div><label class="t" for="k-fe">Fecha</label><input class="in m" id="k-fe" data-fmt="fecha" placeholder="AAAA-MM-DD"></div><div><label class="t" for="k-to">Total (L)</label><input class="in m" id="k-to" data-fmt="dec2" inputmode="decimal" placeholder="0.00"></div></div>
   <div><label class="t" for="k-no">Nota (opcional)</label><input class="in" id="k-no" maxlength="80"></div>
   <div class="btns"><button class="pill" data-cerrar>Cancelar</button><button class="pill fill" data-guardar-com>Guardar</button></div></div></div>
@@ -378,6 +378,7 @@ document.addEventListener('input',e=>{if(e.target.id==='f-q')pintarVen();if(e.ta
 document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrar()});
 </script>
 <script src="../assets/js/campos.js"></script>
+<script src="../assets/js/selector.js"></script>
 <script src="../assets/js/nav.js"></script>
 </body>
 </html>

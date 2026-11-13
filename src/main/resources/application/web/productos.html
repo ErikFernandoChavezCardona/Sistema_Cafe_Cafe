@@ -52,6 +52,15 @@ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
 .dos{display:grid;grid-template-columns:300px 1fr;gap:24px}
 .col{display:flex;flex-direction:column;gap:12px;min-width:0}
 select.in{appearance:none}
+.pick{text-align:left;cursor:pointer;color:var(--suave);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick.sel{color:inherit;font-weight:600}
+.pl{max-height:46vh;overflow-y:auto;border:1px solid var(--linea);border-radius:12px;background:#fff}
+.pr{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;min-height:46px;padding:8px 14px;text-align:left;border-bottom:1px solid var(--linea)}
+.pr:last-child{border-bottom:0}
+.pr:active{background:var(--niebla)}
+.pr small{color:var(--suave);white-space:nowrap}
+.pr[disabled]{opacity:.5}
+.pl p{padding:14px;color:var(--suave)}
 .in.m{font-family:var(--m)}
 .btns{display:flex;gap:10px;margin-top:6px}.btns .pill{flex:1}
 .ln{display:grid;grid-template-columns:1fr 110px 96px 40px;gap:10px;align-items:center;min-height:46px;border-bottom:1px solid var(--linea)}
@@ -118,7 +127,8 @@ select.in{appearance:none}
         <p class="eyebrow">Receta · lo que gasta una unidad</p>
         <div id="rc-l"></div>
         <div class="add">
-          <select class="in" id="rc-i" aria-label="Insumo"></select>
+          <input type="hidden" id="rc-i" value="">
+          <button type="button" class="in pick" id="rc-b" data-elegir aria-label="Elegir insumo">Elegir insumo…</button>
           <input class="in m" id="rc-q" data-fmt="int" inputmode="numeric" placeholder="Cantidad" aria-label="Cantidad" autocomplete="off">
           <button type="button" class="pill" data-add>Agregar</button>
         </div>
@@ -144,6 +154,13 @@ select.in{appearance:none}
     <button type="button" class="pill" data-nc>Agregar</button>
   </div>
   <div class="btns"><button type="button" class="pill fill" data-cerrar>Listo</button></div>
+</div></div>
+
+<div class="fondo" id="m-ins" style="z-index:12"><div class="modal">
+  <h2 class="h" style="font-size:22px">Elegir insumo</h2>
+  <input class="in" id="pi-q" placeholder="Buscar insumo…" aria-label="Buscar insumo" autocomplete="off">
+  <div id="pi-l" class="pl"></div>
+  <div class="btns"><button type="button" class="pill" data-cerrar-ins>Cancelar</button></div>
 </div></div>
 
 <div id="toast" role="alert"></div>
@@ -237,7 +254,7 @@ function abrirProducto(id){
   if(sel)$('#p-c').value=String(sel);
   $('#p-p').value=p?(p.p/100).toFixed(2):'';
   fijarSw($('#p-a'),p?p.a:true);
-  $('#rc-i').innerHTML=INS.map(i=>`<option value="${i.id}">${esc(i.n)} (${esc(i.u)})</option>`).join('');
+  elegirInsumo(null);
   $('#rc-q').value='';
   if(p){
     const r=enJava()?JSON.parse(javaProductos.receta(String(id))):(DEMO_REC[id]||[]);
@@ -247,6 +264,21 @@ function abrirProducto(id){
   setTimeout(()=>$('#p-n').focus(),30);
 }
 function fijarSw(b,on){b.setAttribute('aria-pressed',on);b.classList.toggle('off',!on)}
+function elegirInsumo(i){
+  $('#rc-i').value=i?String(i.id):'';
+  const b=$('#rc-b');b.textContent=i?i.n+' ('+i.u+')':'Elegir insumo…';b.classList.toggle('sel',!!i);
+  unidad();
+}
+function pintarPicker(){
+  const t=norm($('#pi-q').value.trim());
+  const l=INS.filter(i=>!t||norm(i.n).includes(t));
+  $('#pi-l').innerHTML=l.length?l.map(i=>{
+    const ya=E.lineas.some(x=>x.i===i.id);
+    return `<button type="button" class="pr" data-pick="${i.id}"${ya?' disabled':''}><span>${esc(i.n)}</span><small>${esc(i.u)}${ya?' · ya en la receta':''}</small></button>`}).join('')
+    :'<p>No hay insumos con ese nombre.</p>';
+}
+function abrirPicker(){$('#pi-q').value='';pintarPicker();$('#m-ins').classList.add('on');setTimeout(()=>$('#pi-q').focus(),30)}
+function cerrarPicker(){$('#m-ins').classList.remove('on')}
 function unidad(){
   const i=INS.find(x=>x.id===+$('#rc-i').value);
   $('#rc-q').placeholder=i?'Cantidad ('+i.u+')':'Cantidad';
@@ -276,11 +308,11 @@ function resumen(){
 }
 function agregarLinea(){
   const ins=INS.find(i=>i.id===+$('#rc-i').value),q=parseInt($('#rc-q').value,10);
-  if(!ins){mostrarError('No hay insumos para agregar');return}
+  if(!ins){mostrarError('Elige un insumo');return}
   if(isNaN(q)||q<=0){mostrarError('Escribe una cantidad mayor que cero (número entero)');return}
   if(E.lineas.some(l=>l.i===ins.id)){mostrarError('Ese insumo ya está en la receta');return}
   E.lineas.push({i:ins.id,n:ins.n,u:ins.u,q:q,c:ins.c});
-  $('#rc-q').value='';pintarLineas();
+  $('#rc-q').value='';elegirInsumo(null);pintarLineas();
 }
 function guardarProducto(){
   const n=$('#p-n').value.trim(),c=$('#p-c').value,p=aCentavos($('#p-p').value);
@@ -340,6 +372,9 @@ document.addEventListener('click',e=>{
   else if(d.chip!==undefined){cat=+d.chip;pintarChips();pintarLista()}
   else if(d.sw!==undefined)fijarSw(b,b.getAttribute('aria-pressed')!=='true');
   else if(d.add!==undefined)agregarLinea();
+  else if(d.elegir!==undefined)abrirPicker();
+  else if(d.cerrarIns!==undefined)cerrarPicker();
+  else if(d.pick){const i=INS.find(x=>x.id===+d.pick);if(i){elegirInsumo(i);cerrarPicker();$('#rc-q').focus()}}
   else if(d.del!==undefined){E.lineas.splice(+d.del,1);pintarLineas()}
   else if(d.cerrar!==undefined)cerrar();
   else if(d.mv)moverCat(d.mv);
@@ -349,17 +384,21 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='q')pintarLista();
+  else if(t.id==='pi-q')pintarPicker();
   else if(t.id==='p-p')resumen();
   else if(t.dataset.q!==undefined){const v=parseInt(t.value,10);E.lineas[+t.dataset.q].q=isNaN(v)||v<0?0:v;resumen()}
 });
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.cn!==undefined)renombrarCat(+t.dataset.cn,t.value);
-  else if(t.id==='rc-i')unidad();
 });
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='f-prod')guardarProducto()});
 // Enter en la cantidad agrega el insumo (no debe guardar todo el producto)
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='rc-q'){e.preventDefault();agregarLinea()}});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.id==='rc-q'){e.preventDefault();agregarLinea()}
+  else if(e.key==='Enter'&&e.target.id==='pi-q'){e.preventDefault();const b=document.querySelector('#pi-l .pr:not([disabled])');if(b)b.click()}
+  else if(e.key==='Escape'&&$('#m-ins').classList.contains('on')){e.stopPropagation();cerrarPicker()}
+},true);
 </script>
 <script src="../assets/js/campos.js"></script>
 <script src="../assets/js/nav.js"></script>
